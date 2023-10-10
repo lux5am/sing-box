@@ -48,9 +48,10 @@ type Router struct {
 	trackers          []adapter.ConnectionTracker
 	platformInterface adapter.PlatformInterface
 	started           bool
+	reloadChan        chan<- struct{}
 }
 
-func NewRouter(ctx context.Context, logFactory log.Factory, options option.RouteOptions, dnsOptions option.DNSOptions) *Router {
+func NewRouter(ctx context.Context, logFactory log.Factory, options option.RouteOptions, dnsOptions option.DNSOptions, reloadChan chan<- struct{}) *Router {
 	return &Router{
 		ctx:               ctx,
 		logger:            logFactory.NewLogger("router"),
@@ -69,6 +70,7 @@ func NewRouter(ctx context.Context, logFactory log.Factory, options option.Route
 		leaseFiles:        options.DHCPLeaseFiles,
 		pauseManager:      service.FromContext[pause.Manager](ctx),
 		platformInterface: service.FromContext[adapter.PlatformInterface](ctx),
+		reloadChan:        reloadChan,
 	}
 }
 
@@ -302,4 +304,13 @@ func (r *Router) ResetNetwork() {
 	r.httpClientManager.ResetNetwork()
 	r.dns.ResetNetwork()
 	runtime.GC()
+}
+
+func (r *Router) Reload() {
+	if r.platformInterface == nil {
+		select {
+		case r.reloadChan <- struct{}{}:
+		default:
+		}
+	}
 }

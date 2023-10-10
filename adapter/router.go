@@ -28,6 +28,7 @@ type Router interface {
 	Trackers() []ConnectionTracker
 	AppendTracker(tracker ConnectionTracker)
 	ResetNetwork()
+	Reload()
 }
 
 type ConnectionTracker interface {

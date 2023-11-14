@@ -44,7 +44,11 @@ func NewClient(ctx context.Context, dialer N.Dialer, serverAddr M.Socksaddr, opt
 	} else {
 		requestURL.Scheme = "wss"
 	}
-	requestURL.Host = serverAddr.String()
+	if options.Host == "" {
+		requestURL.Host = serverAddr.String()
+	} else {
+		requestURL.Host = options.Host
+	}
 	requestURL.Path = options.Path
 	err := badhttp.URLSetPath(&requestURL, options.Path)
 	if err != nil {

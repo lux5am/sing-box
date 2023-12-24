@@ -92,6 +92,10 @@ func (c *Client) DialContext(ctx context.Context) (net.Conn, error) {
 	}
 	request.Header.Set("Connection", "Upgrade")
 	request.Header.Set("Upgrade", "websocket")
+	if host := request.Header.Get("Host"); host != "" {
+		request.Header.Del("Host")
+		request.Host = host
+	}
 	err = request.Write(conn)
 	if err != nil {
 		return nil, err

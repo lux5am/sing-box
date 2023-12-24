@@ -747,8 +747,19 @@ func newVLESSClashParser(proxy map[string]any) (option.Outbound, error) {
 		Transport := option.V2RayTransportOptions{}
 		switch network {
 		case "ws":
-			Transport.Type = C.V2RayTransportTypeWebsocket
-			Transport.WebsocketOptions = convertWSTransport(proxy)
+			isHTTPUpgrade := false
+			if wsOpts, exists := proxy["ws-opts"].(map[string]any); exists {
+				if ok, exists := wsOpts["v2ray-http-upgrade"].(bool); exists && ok {
+					isHTTPUpgrade = true
+				}
+			}
+			if isHTTPUpgrade {
+				Transport.Type = C.V2RayTransportTypeHTTPUpgrade
+				Transport.HTTPUpgradeOptions = convertHTTPUpgradeTransport(proxy)
+			} else {
+				Transport.Type = C.V2RayTransportTypeWebsocket
+				Transport.WebsocketOptions = convertWSTransport(proxy)
+			}
 		case "grpc":
 			Transport.Type = C.V2RayTransportTypeGRPC
 			Transport.GRPCOptions = convertGRPCTransport(proxy)
@@ -818,8 +829,19 @@ func newTrojanClashParser(proxy map[string]any) (option.Outbound, error) {
 		Transport := option.V2RayTransportOptions{}
 		switch network {
 		case "ws":
-			Transport.Type = C.V2RayTransportTypeWebsocket
-			Transport.WebsocketOptions = convertWSTransport(proxy)
+			isHTTPUpgrade := false
+			if wsOpts, exists := proxy["ws-opts"].(map[string]any); exists {
+				if ok, exists := wsOpts["v2ray-http-upgrade"].(bool); exists && ok {
+					isHTTPUpgrade = true
+				}
+			}
+			if isHTTPUpgrade {
+				Transport.Type = C.V2RayTransportTypeHTTPUpgrade
+				Transport.HTTPUpgradeOptions = convertHTTPUpgradeTransport(proxy)
+			} else {
+				Transport.Type = C.V2RayTransportTypeWebsocket
+				Transport.WebsocketOptions = convertWSTransport(proxy)
+			}
 		case "grpc":
 			Transport.Type = C.V2RayTransportTypeGRPC
 			Transport.GRPCOptions = convertGRPCTransport(proxy)

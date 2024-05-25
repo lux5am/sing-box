@@ -40,6 +40,7 @@ type InboundContext struct {
 	Domain       string
 	Client       string
 	SniffContext any
+	SniffDomain string
 
 	// cache
 

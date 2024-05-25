@@ -24,6 +24,8 @@ require (
 
 require (
 	berty.tech/go-libtor v1.0.385 // indirect
+	github.com/Dreamacro/clash v1.17.0 // indirect
+	github.com/Dreamacro/protobytes v0.0.0-20230617041236-6500a9f4f158 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/ajg/form v1.5.1 // indirect
 	github.com/andybalholm/brotli v1.0.6 // indirect

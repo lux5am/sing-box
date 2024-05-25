@@ -54,10 +54,10 @@ func (c connectionObject) MarshalJSON() ([]byte, error) {
 		inbound = c.Metadata.InboundType
 	}
 	var domain string
-	if c.Metadata.Domain != "" {
-		domain = c.Metadata.Domain
-	} else {
+	if c.Metadata.Destination.Fqdn != "" {
 		domain = c.Metadata.Destination.Fqdn
+	} else {
+		domain = c.Metadata.Domain
 	}
 	var processPath string
 	if c.Metadata.ProcessInfo != nil {

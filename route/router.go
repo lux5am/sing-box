@@ -138,6 +138,12 @@ func NewRouter(
 			return len(inbound.TunOptions.IncludePackage) > 0 || len(inbound.TunOptions.ExcludePackage) > 0
 		}),
 	}
+	if options.TCPKeepAliveInitial > 0 {
+		C.TCPKeepAliveInitial = time.Duration(options.TCPKeepAliveInitial)
+	}
+	if options.TCPKeepAliveInterval > 0 {
+		C.TCPKeepAliveInterval = time.Duration(options.TCPKeepAliveInterval)
+	}
 	var dnsHosts *dns.Hosts
 	if len(dnsOptions.Hosts) > 0 {
 		var err error

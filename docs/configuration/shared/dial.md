@@ -39,6 +39,12 @@ The IPv4 address to bind to.
 
 The IPv6 address to bind to.
 
+#### server_addresses
+
+Addresses used to dial outbound.
+
+If set, outbound's `server` will be ignored
+
 #### routing_mark
 
 !!! quote ""

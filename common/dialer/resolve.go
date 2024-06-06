@@ -8,6 +8,7 @@ import (
 
 	"github.com/sagernet/sing-box/adapter"
 	"github.com/sagernet/sing-box/log"
+	"github.com/sagernet/sing-box/option"
 	"github.com/sagernet/sing-dns"
 	"github.com/sagernet/sing/common/bufio"
 	M "github.com/sagernet/sing/common/metadata"
@@ -15,6 +16,7 @@ import (
 )
 
 type ResolveDialer struct {
+	addresses     []netip.Addr
 	dialer        N.Dialer
 	parallel      bool
 	router        adapter.Router
@@ -22,8 +24,21 @@ type ResolveDialer struct {
 	fallbackDelay time.Duration
 }
 
-func NewResolveDialer(router adapter.Router, dialer N.Dialer, parallel bool, strategy dns.DomainStrategy, fallbackDelay time.Duration) *ResolveDialer {
+func NewResolveDialer(router adapter.Router, dialer N.Dialer, addresses []option.ListenAddress, parallel bool, strategy dns.DomainStrategy, fallbackDelay time.Duration) *ResolveDialer {
+	var addrs []netip.Addr
+	addrsMap := make(map[string]struct{})
+	if len(addresses) > 0 {
+		for _, address := range addresses {
+			addr := address.Build()
+			if _, exists := addrsMap[addr.String()]; exists {
+				continue
+			}
+			addrs = append(addrs, addr)
+			addrsMap[addr.String()] = struct{}{}
+		}
+	}
 	return &ResolveDialer{
+		addrs,
 		dialer,
 		parallel,
 		router,
@@ -42,7 +57,9 @@ func (d *ResolveDialer) DialContext(ctx context.Context, network string, destina
 	metadata.Domain = ""
 	var addresses []netip.Addr
 	var err error
-	if d.strategy == dns.DomainStrategyAsIS {
+	if len(d.addresses) > 0 {
+		addresses = d.addresses
+	} else if d.strategy == dns.DomainStrategyAsIS {
 		addresses, err = d.router.LookupDefault(ctx, destination.Fqdn)
 	} else {
 		addresses, err = d.router.Lookup(ctx, destination.Fqdn, d.strategy)

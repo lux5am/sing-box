@@ -6,6 +6,7 @@
   "bind_interface": "en0",
   "inet4_bind_address": "0.0.0.0",
   "inet6_bind_address": "::",
+  "server_addresses": [],
   "routing_mark": 1234,
   "reuse_addr": false,
   "connect_timeout": "5s",
@@ -41,6 +42,12 @@
 #### inet6_bind_address
 
 要绑定的 IPv6 地址。
+
+#### server_addresses
+
+用来拨号到出站的地址组。
+
+如果该项目被设置，出站的 `server` 项目将被忽略
 
 #### routing_mark
 

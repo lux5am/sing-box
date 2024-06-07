@@ -24,7 +24,7 @@ type LocalDNSTransport interface {
 func RegisterLocalDNSTransport(transport LocalDNSTransport) {
 	if transport == nil {
 		dns.RegisterTransport([]string{"local"}, func(options dns.TransportOptions) (dns.Transport, error) {
-			return dns.NewLocalTransport(options), nil
+			return dns.NewLocalTransport(options)
 		})
 	} else {
 		dns.RegisterTransport([]string{"local"}, func(options dns.TransportOptions) (dns.Transport, error) {

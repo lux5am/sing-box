@@ -135,10 +135,23 @@ func NewRouter(
 			return len(inbound.TunOptions.IncludePackage) > 0 || len(inbound.TunOptions.ExcludePackage) > 0
 		}),
 	}
+	var dnsHosts *dns.Hosts
+	if len(dnsOptions.Hosts) > 0 {
+		var err error
+		hostsMap := make(map[string][]string)
+		for domain, hosts := range dnsOptions.Hosts {
+			hostsMap[domain] = hosts
+		}
+		dnsHosts, err = dns.NewHosts(hostsMap)
+		if err != nil {
+			return nil, err
+		}
+	}
 	router.dnsClient = dns.NewClient(dns.ClientOptions{
 		DisableCache:     dnsOptions.DNSClientOptions.DisableCache,
 		DisableExpire:    dnsOptions.DNSClientOptions.DisableExpire,
 		IndependentCache: dnsOptions.DNSClientOptions.IndependentCache,
+		Hosts:            dnsHosts,
 		RDRC: func() dns.RDRCStore {
 			cacheFile := service.FromContext[adapter.CacheFile](ctx)
 			if cacheFile == nil {
@@ -210,30 +223,60 @@ func NewRouter(
 			} else {
 				detour = dialer.NewDetour(router, server.Detour)
 			}
-			switch server.Address {
-			case "local":
-			default:
-				serverURL, _ := url.Parse(server.Address)
-				var serverAddress string
-				if serverURL != nil {
-					serverAddress = serverURL.Hostname()
-				}
-				if serverAddress == "" {
-					serverAddress = server.Address
-				}
-				notIpAddress := !M.ParseSocksaddr(serverAddress).Addr.IsValid()
-				if server.AddressResolver != "" {
+			if len(server.Address) == 0 {
+				return nil, E.New("parse dns server[", tag, "]: missing address")
+			}
+			detour = dns.NewDefaultDialer(detour, router.dnsClient, time.Duration(server.AddressFallbackDelay))
+			var checked, needSkip bool
+			for i, address := range server.Address {
+				address = strings.TrimSpace(address)
+				switch strings.ToLower(address) {
+				case "":
+					return nil, E.New("parse dns server[", tag, "].address[", i, "]: empty address")
+				case "local", "fakeip":
+				default:
+					serverURL, _ := url.Parse(address)
+					var serverAddress string
+					if serverURL != nil {
+						if serverURL.Hostname() != "" {
+							serverAddress = serverURL.Hostname()
+						} else if serverURL.Scheme != "" {
+							return nil, E.New("parse dns server[", tag, "].address[", i, "]: missing hostname")
+						} else {
+							serverAddress = serverURL.Path
+						}
+					}
+					if serverAddress == "" {
+						serverAddress = address
+					}
+					_, notIpAddress := netip.ParseAddr(serverAddress)
+					if notIpAddress == nil || !strings.Contains(address, ".") {
+						continue
+					}
+					serverAddress = router.dnsClient.GetExactDomainFromHosts(ctx, serverAddress, true)
+					if addrs := router.dnsClient.GetAddrsFromHosts(ctx, serverAddress, router.defaultDomainStrategy, true); len(addrs) > 0 {
+						continue
+					}
+					if server.AddressResolver == "" {
+						return nil, E.New("parse dns server[", tag, "]: missing address_resolver")
+					}
+					if checked {
+						continue
+					}
 					if !transportTagMap[server.AddressResolver] {
 						return nil, E.New("parse dns server[", tag, "]: address resolver not found: ", server.AddressResolver)
 					}
+					checked = true
 					if upstream, exists := dummyTransportMap[server.AddressResolver]; exists {
 						detour = dns.NewDialerWrapper(detour, router.dnsClient, upstream, dns.DomainStrategy(server.AddressStrategy), time.Duration(server.AddressFallbackDelay))
 					} else {
-						continue
+						needSkip = true
+						break
 					}
-				} else if notIpAddress && strings.Contains(server.Address, ".") {
-					return nil, E.New("parse dns server[", tag, "]: missing address_resolver")
 				}
+			}
+			if needSkip {
+				continue
 			}
 			var clientSubnet netip.Prefix
 			if server.ClientSubnet != nil {
@@ -248,6 +291,7 @@ func NewRouter(
 				Dialer:       detour,
 				Address:      server.Address,
 				ClientSubnet: clientSubnet,
+				Insecure:     server.Insecure,
 			})
 			if err != nil {
 				return nil, E.Cause(err, "parse dns server[", tag, "]")
@@ -291,7 +335,7 @@ func NewRouter(
 			transports = append(transports, common.Must1(dns.CreateTransport(dns.TransportOptions{
 				Context: ctx,
 				Name:    "local",
-				Address: "local",
+				Address: []string{"local"},
 				Dialer:  common.Must1(dialer.NewDefault(router, option.DialerOptions{})),
 			})))
 		}
@@ -859,15 +903,24 @@ func (r *Router) RouteConnection(ctx context.Context, conn net.Conn, metadata ad
 		}
 	}
 
-	if metadata.Destination.IsFqdn() && dns.DomainStrategy(metadata.InboundOptions.DomainStrategy) != dns.DomainStrategyAsIS {
-		addresses, err := r.Lookup(adapter.WithContext(ctx, &metadata), metadata.Destination.Fqdn, dns.DomainStrategy(metadata.InboundOptions.DomainStrategy))
-		if err != nil {
-			return err
+	if metadata.Destination.IsFqdn() {
+		metadata.Destination.Fqdn = r.dnsClient.GetExactDomainFromHosts(ctx, metadata.Destination.Fqdn, false)
+		inboundStrategy := dns.DomainStrategy(metadata.InboundOptions.DomainStrategy)
+		strategy := inboundStrategy
+		if strategy == dns.DomainStrategyAsIS {
+			strategy = r.defaultDomainStrategy
 		}
-		metadata.DestinationAddresses = addresses
-		r.dnsLogger.DebugContext(ctx, "resolved [", strings.Join(F.MapToString(metadata.DestinationAddresses), " "), "]")
-	}
-	if metadata.Destination.IsIPv4() {
+		if responseAddrs := r.dnsClient.GetAddrsFromHosts(ctx, metadata.Destination.Fqdn, strategy, false); len(responseAddrs) > 0 {
+			metadata.DestinationAddresses = responseAddrs
+		} else if inboundStrategy != dns.DomainStrategyAsIS {
+			addresses, err := r.lookup(adapter.WithContext(ctx, &metadata), metadata.Destination.Fqdn, dns.DomainStrategy(metadata.InboundOptions.DomainStrategy))
+			if err != nil {
+				return err
+			}
+			metadata.DestinationAddresses = addresses
+			r.dnsLogger.DebugContext(ctx, "resolved [", strings.Join(F.MapToString(metadata.DestinationAddresses), " "), "]")
+		}
+	} else if metadata.Destination.IsIPv4() {
 		metadata.IPVersion = 4
 	} else if metadata.Destination.IsIPv6() {
 		metadata.IPVersion = 6
@@ -979,15 +1032,24 @@ func (r *Router) RoutePacketConnection(ctx context.Context, conn N.PacketConn, m
 			r.logger.DebugContext(ctx, "found reserve mapped domain: ", metadata.Domain)
 		}
 	}
-	if metadata.Destination.IsFqdn() && dns.DomainStrategy(metadata.InboundOptions.DomainStrategy) != dns.DomainStrategyAsIS {
-		addresses, err := r.Lookup(adapter.WithContext(ctx, &metadata), metadata.Destination.Fqdn, dns.DomainStrategy(metadata.InboundOptions.DomainStrategy))
-		if err != nil {
-			return err
+	if metadata.Destination.IsFqdn() {
+		metadata.Destination.Fqdn = r.dnsClient.GetExactDomainFromHosts(ctx, metadata.Destination.Fqdn, false)
+		inboundStrategy := dns.DomainStrategy(metadata.InboundOptions.DomainStrategy)
+		strategy := inboundStrategy
+		if strategy == dns.DomainStrategyAsIS {
+			strategy = r.defaultDomainStrategy
 		}
-		metadata.DestinationAddresses = addresses
-		r.dnsLogger.DebugContext(ctx, "resolved [", strings.Join(F.MapToString(metadata.DestinationAddresses), " "), "]")
-	}
-	if metadata.Destination.IsIPv4() {
+		if responseAddrs := r.dnsClient.GetAddrsFromHosts(ctx, metadata.Destination.Fqdn, strategy, false); len(responseAddrs) > 0 {
+			metadata.DestinationAddresses = responseAddrs
+		} else if inboundStrategy != dns.DomainStrategyAsIS {
+			addresses, err := r.lookup(adapter.WithContext(ctx, &metadata), metadata.Destination.Fqdn, dns.DomainStrategy(metadata.InboundOptions.DomainStrategy))
+			if err != nil {
+				return err
+			}
+			metadata.DestinationAddresses = addresses
+			r.dnsLogger.DebugContext(ctx, "resolved [", strings.Join(F.MapToString(metadata.DestinationAddresses), " "), "]")
+		}
+	} else if metadata.Destination.IsIPv4() {
 		metadata.IPVersion = 4
 	} else if metadata.Destination.IsIPv6() {
 		metadata.IPVersion = 6

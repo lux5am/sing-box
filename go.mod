@@ -54,7 +54,7 @@ require (
 	howett.net/plist v1.0.1
 )
 
-//replace github.com/sagernet/sing => ../sing
+replace github.com/sagernet/sing-dns v0.2.0 => github.com/lux5am/sing-dns v0.2.1-0.20240610065713-c34e08dbf950
 
 require (
 	github.com/Dreamacro/protobytes v0.0.0-20230617041236-6500a9f4f158 // indirect

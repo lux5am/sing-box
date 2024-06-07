@@ -14,17 +14,22 @@ icon: material/new-box
     "servers": [
       {
         "tag": "",
-        "address": "",
+        "address": [],
         "address_resolver": "",
         "address_strategy": "",
         "strategy": "",
         "detour": "",
-        "client_subnet": ""
+        "client_subnet": "",
+        "insecure": false
       }
     ]
   }
 }
 ```
+
+!!! note ""
+
+    You can ignore the JSON Array [] tag when the content is only one item
 
 ### Fields
 
@@ -36,7 +41,7 @@ The tag of the dns server.
 
 ==Required==
 
-The address of the dns server.
+The addresses of the dns server.
 
 | Protocol                             | Format                        |
 |--------------------------------------|-------------------------------|
@@ -54,6 +59,10 @@ The address of the dns server.
 !!! warning ""
 
     To ensure that Android system DNS is in effect, rather than Go's built-in default resolver, enable CGO at compile time.
+
+!!! warning ""
+
+    System/RCode/FakeIP transport can only used alone.
 
 !!! info ""
 
@@ -107,3 +116,9 @@ If value is an IP address instead of prefix, `/32` or `/128` will be appended au
 Can be overrides by `rules.[].client_subnet`.
 
 Will overrides `dns.client_subnet`.
+
+#### insecure
+
+Accepts any server certificate.
+
+Only action when addresses contains HTTPS/TLS/HTTP3/QUIC protocol.

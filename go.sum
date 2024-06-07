@@ -73,6 +73,8 @@ github.com/libdns/libdns v0.2.2 h1:O6ws7bAfRPaBsgAYt8MDe2HcNBGC29hkZ9MX2eUSX3s=
 github.com/libdns/libdns v0.2.2/go.mod h1:4Bj9+5CQiNMVGf87wjX4CY3HQJypUHRuLvlsfsZqLWQ=
 github.com/logrusorgru/aurora v2.0.3+incompatible h1:tOpm7WcpBTn4fjmVfgpQq0EfczGlG91VSDkswnjF5A8=
 github.com/logrusorgru/aurora v2.0.3+incompatible/go.mod h1:7rIyQOR62GCctdiQpZ/zOJlFyk6y+94wXzv6RNZgaR4=
+github.com/lux5am/sing-dns v0.2.1-0.20240610065713-c34e08dbf950 h1:O7Vvyy7TIHqthymWsJappPebVQen9NLbakxQpQb+PV4=
+github.com/lux5am/sing-dns v0.2.1-0.20240610065713-c34e08dbf950/go.mod h1:BJpJv6XLnrUbSyIntOT6DG9FW0f4fETmPAHvNjOprLg=
 github.com/mholt/acmez v1.2.0 h1:1hhLxSgY5FvH5HCnGUuwbKY2VQVo8IU7rxXKSnZ7F30=
 github.com/mholt/acmez v1.2.0/go.mod h1:VT9YwH1xgNX1kmYY89gY8xPJC84BFAisjo8Egigt4kE=
 github.com/miekg/dns v1.1.59 h1:C9EXc/UToRwKLhK5wKU/I4QVsBUc8kE6MkHBkeypWZs=
@@ -112,8 +114,6 @@ github.com/sagernet/reality v0.0.0-20230406110435-ee17307e7691/go.mod h1:B8lp4Wk
 github.com/sagernet/sing v0.2.18/go.mod h1:OL6k2F0vHmEzXz2KW19qQzu172FDgSbUSODylighuVo=
 github.com/sagernet/sing v0.4.1 h1:zVlpE+7k7AFoC2pv6ReqLf0PIHjihL/jsBl5k05PQFk=
 github.com/sagernet/sing v0.4.1/go.mod h1:ieZHA/+Y9YZfXs2I3WtuwgyCZ6GPsIR7HdKb1SdEnls=
-github.com/sagernet/sing-dns v0.2.0 h1:dka3weRX6+CrYO3v+hrTy2z68rCOCZXNBiNXpLZ6JNs=
-github.com/sagernet/sing-dns v0.2.0/go.mod h1:BJpJv6XLnrUbSyIntOT6DG9FW0f4fETmPAHvNjOprLg=
 github.com/sagernet/sing-mux v0.2.0 h1:4C+vd8HztJCWNYfufvgL49xaOoOHXty2+EAjnzN3IYo=
 github.com/sagernet/sing-mux v0.2.0/go.mod h1:khzr9AOPocLa+g53dBplwNDz4gdsyx/YM3swtAhlkHQ=
 github.com/sagernet/sing-quic v0.2.0-beta.5 h1:ceKFLd1iS5AtM+pScKmcDp5k7R6WgYIe8vl6nB0aVsE=

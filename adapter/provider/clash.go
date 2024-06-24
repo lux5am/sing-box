@@ -23,16 +23,25 @@ type ClashConfig struct {
 }
 
 func convertTLSOptions(proxy map[string]any) *option.OutboundTLSOptions {
+	var enableTLS bool
+	if proxy["type"] == "trojan" {
+		enableTLS = true
+	}
+	if tls, exists := proxy["tls"].(bool); exists {
+		enableTLS = tls
+	}
+	if !enableTLS {
+		return nil
+	}
+
 	options := option.OutboundTLSOptions{
+		Enabled: true,
 		ECH:     &option.OutboundECHOptions{},
 		UTLS:    &option.OutboundUTLSOptions{},
 		Reality: &option.OutboundRealityOptions{},
 	}
-	if tls, exists := proxy["tls"].(bool); exists && tls {
-		options.Enabled = true
-	}
+
 	if insecure, exists := proxy["skip-cert-verify"].(bool); exists {
-		options.Enabled = true
 		options.Insecure = insecure
 	}
 	if sni, exists := proxy["sni"].(string); exists {
@@ -55,12 +64,10 @@ func convertTLSOptions(proxy map[string]any) *option.OutboundTLSOptions {
 		options.ALPN = alpnArr
 	}
 	if fingerprint, exists := proxy["client-fingerprint"].(string); exists {
-		options.Enabled = true
 		options.UTLS.Enabled = true
 		options.UTLS.Fingerprint = fingerprint
 	}
 	if reality, exists := proxy["reality-opts"].(map[string]any); exists {
-		options.Enabled = true
 		options.Reality.Enabled = true
 		if pbk, exists := reality["public-key"].(string); exists {
 			options.Reality.PublicKey = pbk
@@ -825,7 +832,6 @@ func newTrojanClashParser(proxy map[string]any) (option.Outbound, error) {
 		options.Transport = &Transport
 	}
 	options.TLS = convertTLSOptions(proxy)
-	options.TLS.Enabled = true
 	options.Multiplex = convertSMuxOptions(proxy)
 	options.DialerOptions = convertDialerOption(proxy)
 	outbound.Options = &options

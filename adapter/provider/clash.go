@@ -28,9 +28,6 @@ func convertTLSOptions(proxy map[string]any) *option.OutboundTLSOptions {
 		UTLS:    &option.OutboundUTLSOptions{},
 		Reality: &option.OutboundRealityOptions{},
 	}
-	if tls, exists := proxy["tls"].(bool); exists && tls {
-		options.Enabled = true
-	}
 	if insecure, exists := proxy["skip-cert-verify"].(bool); exists {
 		options.Enabled = true
 		options.Insecure = insecure
@@ -68,6 +65,12 @@ func convertTLSOptions(proxy map[string]any) *option.OutboundTLSOptions {
 		if sid, exists := reality["short-id"].(string); exists {
 			options.Reality.ShortID = sid
 		}
+	}
+	if proxy["type"] == "trojan" {
+		options.Enabled = true
+	}
+	if tls, exists := proxy["tls"].(bool); exists {
+		options.Enabled = tls
 	}
 	return &options
 }
@@ -825,7 +828,6 @@ func newTrojanClashParser(proxy map[string]any) (option.Outbound, error) {
 		options.Transport = &Transport
 	}
 	options.TLS = convertTLSOptions(proxy)
-	options.TLS.Enabled = true
 	options.Multiplex = convertSMuxOptions(proxy)
 	options.DialerOptions = convertDialerOption(proxy)
 	outbound.Options = options

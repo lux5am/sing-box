@@ -274,7 +274,7 @@ func (p *RemoteProvider) fetchOnce(ctx context.Context, router adapter.Router) e
 		}
 	}
 
-	updated, err := p.updateProviderFromContent(ctx, router, content)
+	_, err = p.updateProviderFromContent(ctx, router, content)
 	if err != nil {
 		return err
 	}
@@ -289,9 +289,6 @@ func (p *RemoteProvider) fetchOnce(ctx context.Context, router adapter.Router) e
 
 	os.WriteFile(p.path, []byte(content), 0o666)
 
-	if updated {
-		p.CheckOutbounds(true)
-	}
 	return nil
 }
 

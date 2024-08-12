@@ -312,7 +312,7 @@ find:
 		return E.Cause1(ErrNeedMoreData, err)
 	}
 	if domain := M.ParseSocksaddrHostPort(fingerprint.ServerName, 0).Fqdn; domain != "" && (domain != metadata.ECHPublicName || !slices.Contains(fingerprint.Extensions, extensionEncryptedClientHello)) {
-		metadata.Domain = domain
+		metadata.SniffHost = domain
 	}
 	for metadata.Client == "" {
 		if len(frameTypeList) == 1 {

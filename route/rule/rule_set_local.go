@@ -27,6 +27,8 @@ func NewLocalRuleSet(ctx context.Context, logger logger.ContextLogger, options o
 			ctx:    ctx,
 			logger: logger,
 			tag:    options.Tag,
+			sType:  options.Type,
+			format: options.Format,
 		},
 	}
 	if options.Type == C.RuleSetTypeInline {
@@ -39,7 +41,6 @@ func NewLocalRuleSet(ctx context.Context, logger logger.ContextLogger, options o
 		}
 	} else {
 		ruleSet.path = options.Path
-		ruleSet.format = options.Format
 		path, err := ruleSet.getPath(options.Path)
 		if err != nil {
 			return nil, err
@@ -73,6 +74,14 @@ func (s *LocalRuleSet) StartContext(ctx context.Context, startContext *adapter.H
 		if err != nil {
 			s.logger.Error(E.Cause(err, "watch rule-set file"))
 		}
+	}
+	return nil
+}
+
+func (s *LocalRuleSet) Update(ctx context.Context) error {
+	err := s.loadFromFile(s.path)
+	if err != nil {
+		s.logger.ErrorContext(ctx, E.Cause(err, "reload rule-set ", s.tag))
 	}
 	return nil
 }

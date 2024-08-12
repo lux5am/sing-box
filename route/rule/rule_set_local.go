@@ -31,6 +31,8 @@ func NewLocalRuleSet(ctx context.Context, logger logger.ContextLogger, options o
 			ctx:    ctx,
 			logger: logger,
 			tag:    options.Tag,
+			sType:  options.Type,
+			format: options.Format,
 		},
 	}
 	if options.Type == C.RuleSetTypeInline {
@@ -43,7 +45,6 @@ func NewLocalRuleSet(ctx context.Context, logger logger.ContextLogger, options o
 		}
 	} else {
 		ruleSet.path = options.Path
-		ruleSet.format = options.Format
 		path, err := ruleSet.getPath(options.Path)
 		if err != nil {
 			return nil, err
@@ -95,6 +96,10 @@ func (s *LocalRuleSet) UnregisterCallback(element *list.Element[adapter.RuleSetU
 	s.callbackAccess.Lock()
 	defer s.callbackAccess.Unlock()
 	s.callbacks.Remove(element)
+}
+
+func (s *LocalRuleSet) Update(ctx context.Context) error {
+	return nil
 }
 
 func (s *LocalRuleSet) Close() error {

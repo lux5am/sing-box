@@ -19,12 +19,17 @@ type abstractDefaultRule struct {
 	destinationPortItems    []RuleItem
 	allItems                []RuleItem
 	ruleSetItem             RuleItem
+	ruleCount               uint64
 	invert                  bool
 	action                  adapter.RuleAction
 }
 
 func (r *abstractDefaultRule) Type() string {
 	return C.RuleTypeDefault
+}
+
+func (r *abstractDefaultRule) RuleCount() uint64 {
+	return r.ruleCount
 }
 
 func (r *abstractDefaultRule) Start() error {
@@ -155,10 +160,15 @@ type abstractLogicalRule struct {
 	mode   string
 	invert bool
 	action adapter.RuleAction
+	ruleCount uint64
 }
 
 func (r *abstractLogicalRule) Type() string {
 	return C.RuleTypeLogical
+}
+
+func (r *abstractLogicalRule) RuleCount() uint64 {
+	return r.ruleCount
 }
 
 func (r *abstractLogicalRule) Start() error {

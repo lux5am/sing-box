@@ -54,12 +54,13 @@ type InboundContext struct {
 	// sniffer
 
 	Protocol     string
-	Domain       string
+	SniffHost    string
 	Client       string
 	SniffContext any
 
 	// cache
 
+	Domain                   string
 	// Deprecated: implement in rule action
 	InboundDetour            string
 	LastInbound              string

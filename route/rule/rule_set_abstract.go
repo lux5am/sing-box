@@ -30,6 +30,8 @@ type abstractRuleSet struct {
 	tag         string
 	path        string
 	format      string
+	sType       string
+	ruleCount   uint64
 	rules       []adapter.HeadlessRule
 	metadata    adapter.RuleSetMetadata
 	lastUpdated time.Time
@@ -40,6 +42,22 @@ type abstractRuleSet struct {
 
 func (s *abstractRuleSet) Name() string {
 	return s.tag
+}
+
+func (s *abstractRuleSet) Type() string {
+	return s.sType
+}
+
+func (s *abstractRuleSet) Format() string {
+	return s.format
+}
+
+func (s *abstractRuleSet) RuleCount() uint64 {
+	return s.ruleCount
+}
+
+func (s *abstractRuleSet) UpdatedTime() time.Time {
+	return s.lastUpdated
 }
 
 func (s *abstractRuleSet) String() string {
@@ -115,6 +133,10 @@ func (s *abstractRuleSet) UnregisterCallback(element *list.Element[adapter.RuleS
 	s.callbacks.Remove(element)
 }
 
+func (s *abstractRuleSet) Update(ctx context.Context) error {
+	return nil
+}
+
 func (s *abstractRuleSet) loadFromFile(path string) error {
 	file, err := os.Open(path)
 	if err != nil {
@@ -159,17 +181,20 @@ func (s *abstractRuleSet) loadBytes(content []byte) error {
 func (s *abstractRuleSet) reloadRules(headlessRules []option.HeadlessRule) error {
 	rules := make([]adapter.HeadlessRule, len(headlessRules))
 	var err error
+	var ruleCount uint64
 	for i, ruleOptions := range headlessRules {
 		rules[i], err = NewHeadlessRule(s.ctx, ruleOptions)
 		if err != nil {
 			return E.Cause(err, "parse rule_set.rules.[", i, "]")
 		}
+		ruleCount += rules[i].RuleCount()
 	}
 	var metadata adapter.RuleSetMetadata
 	metadata.ContainsProcessRule = HasHeadlessRule(headlessRules, isProcessHeadlessRule)
 	metadata.ContainsWIFIRule = HasHeadlessRule(headlessRules, isWIFIHeadlessRule)
 	metadata.ContainsIPCIDRRule = HasHeadlessRule(headlessRules, isIPCIDRHeadlessRule)
 	s.access.Lock()
+	s.ruleCount = ruleCount
 	s.rules = rules
 	s.metadata = metadata
 	callbacks := s.callbacks.Array()

@@ -92,6 +92,7 @@ func (c connectionObject) MarshalJSON() ([]byte, error) {
 			"sourcePort":      F.ToString(c.Metadata.Source.Port),
 			"destinationPort": F.ToString(c.Metadata.Destination.Port),
 			"host":            domain,
+			"sniffHost":       c.Metadata.SniffHost,
 			"dnsMode":         "normal",
 			"processPath":     processPath,
 		},

@@ -66,6 +66,7 @@ type InboundContext struct {
 	Domain        string
 	ECHPublicName string
 	Client        string
+	SniffHost     string
 	SniffContext  any
 	SnifferNames  []string
 	SniffError    error

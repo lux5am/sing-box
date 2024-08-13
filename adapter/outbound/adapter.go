@@ -2,12 +2,14 @@ package outbound
 
 import (
 	"github.com/sagernet/sing-box/option"
+	C "github.com/sagernet/sing-box/constant"
 )
 
 type Adapter struct {
 	outboundType string
 	outboundTag  string
 	network      []string
+	port         uint16
 	dependencies []string
 }
 
@@ -34,6 +36,23 @@ func (a *Adapter) Type() string {
 
 func (a *Adapter) Tag() string {
 	return a.outboundTag
+}
+
+func (a *Adapter) Port() int {
+	switch a.outboundType {
+	case C.TypeDirect, C.TypeBlock, C.TypeDNS, C.TypeTor, C.TypeSelector, C.TypeURLTest:
+		return 65536
+	default:
+		return int(a.port)
+	}
+}
+
+func (a *Adapter) SetPort(port uint16) {
+	a.port = port
+}
+
+func (a *Adapter) SetTag(tag string) {
+	a.outboundTag = tag
 }
 
 func (a *Adapter) Network() []string {

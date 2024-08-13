@@ -12,6 +12,7 @@ import (
 	"github.com/sagernet/sing-box/adapter/endpoint"
 	"github.com/sagernet/sing-box/adapter/inbound"
 	"github.com/sagernet/sing-box/adapter/outbound"
+	"github.com/sagernet/sing-box/adapter/provider"
 	"github.com/sagernet/sing-box/common/dialer"
 	"github.com/sagernet/sing-box/common/taskmonitor"
 	C "github.com/sagernet/sing-box/constant"
@@ -40,6 +41,7 @@ type Box struct {
 	endpoint   *endpoint.Manager
 	inbound    *inbound.Manager
 	outbound   *outbound.Manager
+	provider   *provider.Manager
 	connection *route.ConnectionManager
 	router     *route.Router
 	services   []adapter.LifecycleService
@@ -134,9 +136,11 @@ func New(options Options) (*Box, error) {
 	endpointManager := endpoint.NewManager(logFactory.NewLogger("endpoint"), endpointRegistry)
 	inboundManager := inbound.NewManager(logFactory.NewLogger("inbound"), inboundRegistry, endpointManager)
 	outboundManager := outbound.NewManager(logFactory.NewLogger("outbound"), outboundRegistry, endpointManager, routeOptions.Final)
+	providerManager := provider.NewManager(logFactory, outboundManager)
 	service.MustRegister[adapter.EndpointManager](ctx, endpointManager)
 	service.MustRegister[adapter.InboundManager](ctx, inboundManager)
 	service.MustRegister[adapter.OutboundManager](ctx, outboundManager)
+	service.MustRegister[adapter.OutboundProviderManager](ctx, providerManager)
 
 	networkManager, err := route.NewNetworkManager(ctx, logFactory.NewLogger("network"), routeOptions)
 	if err != nil {
@@ -185,6 +189,23 @@ func New(options Options) (*Box, error) {
 			return nil, E.Cause(err, "initialize inbound[", i, "]")
 		}
 	}
+	for i, providerOptions := range options.OutboundProviders {
+		var tag string
+		if providerOptions.Tag != "" {
+			tag = providerOptions.Tag
+		} else {
+			tag = F.ToString(i)
+		}
+		err = providerManager.Create(
+			ctx,
+			router,
+			tag,
+			providerOptions,
+		)
+		if err != nil {
+			return nil, E.Cause(err, "initialize outbound provider[", i, "]")
+		}
+	}
 	for i, outboundOptions := range options.Outbounds {
 		var tag string
 		if outboundOptions.Tag != "" {
@@ -215,8 +236,8 @@ func New(options Options) (*Box, error) {
 		direct.NewOutbound(
 			ctx,
 			router,
-			logFactory.NewLogger("outbound/direct"),
-			"direct",
+			logFactory.NewLogger(F.ToString("outbound/direct[OUTBOUNDLESS]")),
+			"OUTBOUNDLESS",
 			option.DirectOutboundOptions{},
 		),
 	))
@@ -276,6 +297,7 @@ func New(options Options) (*Box, error) {
 		endpoint:   endpointManager,
 		inbound:    inboundManager,
 		outbound:   outboundManager,
+		provider:   providerManager,
 		connection: connectionManager,
 		router:     router,
 		createdAt:  createdAt,
@@ -336,11 +358,11 @@ func (s *Box) preStart() error {
 	if err != nil {
 		return err
 	}
-	err = adapter.Start(adapter.StartStateInitialize, s.network, s.connection, s.router, s.outbound, s.inbound, s.endpoint)
+	err = adapter.Start(adapter.StartStateInitialize, s.network, s.connection, s.router, s.provider, s.outbound, s.inbound, s.endpoint)
 	if err != nil {
 		return err
 	}
-	err = adapter.Start(adapter.StartStateStart, s.outbound, s.network, s.connection, s.router)
+	err = adapter.Start(adapter.StartStateStart, s.provider, s.outbound, s.network, s.connection, s.router)
 	if err != nil {
 		return err
 	}
@@ -364,7 +386,7 @@ func (s *Box) start() error {
 	if err != nil {
 		return err
 	}
-	err = adapter.Start(adapter.StartStatePostStart, s.outbound, s.network, s.connection, s.router, s.inbound, s.endpoint)
+	err = adapter.Start(adapter.StartStatePostStart, s.outbound, s.provider, s.network, s.connection, s.router, s.inbound, s.endpoint)
 	if err != nil {
 		return err
 	}

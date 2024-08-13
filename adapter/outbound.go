@@ -13,9 +13,12 @@ import (
 type Outbound interface {
 	Type() string
 	Tag() string
+	Port() int
 	Network() []string
 	Dependencies() []string
 	N.Dialer
+	SetPort(port uint16)
+	SetTag(tag string)
 }
 
 type OutboundRegistry interface {
@@ -30,4 +33,5 @@ type OutboundManager interface {
 	Default() Outbound
 	Remove(tag string) error
 	Create(ctx context.Context, router Router, logger log.ContextLogger, tag string, outboundType string, options any) error
+	CreateOutbound(ctx context.Context, router Router, logger log.ContextLogger, tag string, outboundType string, options any) (Outbound, error)
 }

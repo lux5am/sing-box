@@ -30,11 +30,11 @@ func New(ctx context.Context, options option.DialerOptions) (N.Dialer, error) {
 			return nil, err
 		}
 	} else {
-		outboundManager := service.FromContext[adapter.OutboundManager](ctx)
-		if outboundManager == nil {
-			return nil, E.New("missing outbound manager")
+		providerManager := service.FromContext[adapter.OutboundProviderManager](ctx)
+		if providerManager == nil {
+			return nil, E.New("missing provider manager")
 		}
-		dialer = NewDetour(outboundManager, options.Detour)
+		dialer = NewDetour(providerManager, options.Detour)
 	}
 	if options.Detour == "" {
 		router := service.FromContext[adapter.Router](ctx)

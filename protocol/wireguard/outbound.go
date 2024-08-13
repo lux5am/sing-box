@@ -51,6 +51,7 @@ func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextL
 		logger:         logger,
 		localAddresses: options.LocalAddress,
 	}
+	outbound.SetPort(options.ServerPort)
 	if options.Detour == "" {
 		options.IsWireGuardListener = true
 	} else if options.GSO {

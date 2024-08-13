@@ -5,6 +5,7 @@ import "github.com/sagernet/sing-box/option"
 type Adapter struct {
 	endpointType string
 	endpointTag  string
+	port         uint16
 	network      []string
 	dependencies []string
 }
@@ -32,6 +33,18 @@ func (a *Adapter) Type() string {
 
 func (a *Adapter) Tag() string {
 	return a.endpointTag
+}
+
+func (a *Adapter) SetTag(tag string) {
+	a.endpointTag = tag
+}
+
+func (a *Adapter) Port() int {
+	return int(a.port)
+}
+
+func (a *Adapter) SetPort(port uint16) {
+	a.port = port
 }
 
 func (a *Adapter) Network() []string {

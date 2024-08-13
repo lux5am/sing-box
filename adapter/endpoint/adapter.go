@@ -7,6 +7,7 @@ type Adapter struct {
 	endpointTag  string
 	network      []string
 	dependencies []string
+	port         uint16
 }
 
 func NewAdapter(endpointType string, endpointTag string, network []string, dependencies []string) Adapter {
@@ -32,6 +33,18 @@ func (a *Adapter) Type() string {
 
 func (a *Adapter) Tag() string {
 	return a.endpointTag
+}
+
+func (a *Adapter) SetTag(tag string) {
+	a.endpointTag = tag
+}
+
+func (a *Adapter) Port() int {
+	return int(a.port)
+}
+
+func (a *Adapter) SetPort(port uint16) {
+	a.port = port
 }
 
 func (a *Adapter) Network() []string {

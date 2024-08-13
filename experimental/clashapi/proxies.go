@@ -46,7 +46,7 @@ func findProxyByName(server *Server) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			name := r.Context().Value(CtxKeyProxyName).(string)
-			proxy, exist := server.outbound.Outbound(name)
+			proxy, exist := server.provider.OutboundWithProvider(name)
 			if !exist {
 				render.Status(r, http.StatusNotFound)
 				render.JSON(w, r, ErrNotFound)
@@ -77,6 +77,9 @@ func proxyInfo(server *Server, detour adapter.Outbound) *badjson.JSONObject {
 		info.Put("history", []*adapter.URLTestHistory{})
 	}
 	if group, isGroup := detour.(adapter.OutboundGroup); isGroup {
+		if urltestGroup, isURLTest := group.(adapter.URLTestGroup); isURLTest {
+			urltestGroup.PerformUpdateCheck("", true)
+		}
 		info.Put("now", group.Now())
 		info.Put("all", group.All())
 	}
@@ -86,7 +89,7 @@ func proxyInfo(server *Server, detour adapter.Outbound) *badjson.JSONObject {
 func getProxies(server *Server) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var proxyMap badjson.JSONObject
-		outbounds := common.Filter(server.outbound.Outbounds(), func(detour adapter.Outbound) bool {
+		outbounds := common.Filter(server.provider.OutboundsWithProvider(), func(detour adapter.Outbound) bool {
 			return detour.Tag() != ""
 		})
 		outbounds = append(outbounds, common.Map(common.Filter(server.endpoint.Endpoints(), func(detour adapter.Endpoint) bool {
@@ -95,7 +98,7 @@ func getProxies(server *Server) func(w http.ResponseWriter, r *http.Request) {
 			return it
 		})...)
 
-		allProxies := make([]string, 0, len(outbounds))
+		allProxies := []string{}
 
 		for _, detour := range outbounds {
 			switch detour.Type() {

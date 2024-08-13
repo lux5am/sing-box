@@ -11,6 +11,7 @@ type DNSOptions struct {
 	Rules          []DNSRule          `json:"rules,omitempty"`
 	Final          string             `json:"final,omitempty"`
 	ReverseMapping bool               `json:"reverse_mapping,omitempty"`
+	Hosts          map[string]badoption.Listable[string] `json:"hosts,omitempty"`
 	FakeIP         *DNSFakeIPOptions  `json:"fakeip,omitempty"`
 	DNSClientOptions
 }

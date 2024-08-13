@@ -59,6 +59,39 @@ func (h *Outbound) UnmarshalJSONContext(ctx context.Context, content []byte) err
 	return nil
 }
 
+func (h *Outbound) Port() int {
+	var port uint16
+	switch h.Type {
+	case C.TypeSOCKS:
+		port = h.Options.(*SOCKSOutboundOptions).ServerPort
+	case C.TypeHTTP:
+		port = h.Options.(*HTTPOutboundOptions).ServerPort
+	case C.TypeShadowsocks:
+		port = h.Options.(*ShadowsocksOutboundOptions).ServerPort
+	case C.TypeVMess:
+		port = h.Options.(*VMessOutboundOptions).ServerPort
+	case C.TypeTrojan:
+		port = h.Options.(*TrojanOutboundOptions).ServerPort
+	case C.TypeWireGuard:
+		port = h.Options.(*LegacyWireGuardOutboundOptions).ServerPort
+	case C.TypeHysteria:
+		port = h.Options.(*HysteriaOutboundOptions).ServerPort
+	case C.TypeSSH:
+		port = h.Options.(*SSHOutboundOptions).ServerPort
+	case C.TypeShadowTLS:
+		port = h.Options.(*ShadowTLSOutboundOptions).ServerPort
+	case C.TypeShadowsocksR:
+		port = h.Options.(*ShadowsocksROutboundOptions).ServerPort
+	case C.TypeVLESS:
+		port = h.Options.(*VLESSOutboundOptions).ServerPort
+	case C.TypeTUIC:
+		port = h.Options.(*TUICOutboundOptions).ServerPort
+	case C.TypeHysteria2:
+		port = h.Options.(*Hysteria2OutboundOptions).ServerPort
+	}
+	return int(port)
+}
+
 type DialerOptionsWrapper interface {
 	TakeDialerOptions() DialerOptions
 	ReplaceDialerOptions(options DialerOptions)

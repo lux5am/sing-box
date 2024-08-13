@@ -137,10 +137,23 @@ func NewRouter(
 			return len(inbound.TunOptions.IncludePackage) > 0 || len(inbound.TunOptions.ExcludePackage) > 0
 		}),
 	}
+	var dnsHosts *dns.Hosts
+	if len(dnsOptions.Hosts) > 0 {
+		var err error
+		hostsMap := make(map[string][]string)
+		for domain, hosts := range dnsOptions.Hosts {
+			hostsMap[domain] = hosts
+		}
+		dnsHosts, err = dns.NewHosts(hostsMap)
+		if err != nil {
+			return nil, err
+		}
+	}
 	router.dnsClient = dns.NewClient(dns.ClientOptions{
 		DisableCache:     dnsOptions.DNSClientOptions.DisableCache,
 		DisableExpire:    dnsOptions.DNSClientOptions.DisableExpire,
 		IndependentCache: dnsOptions.DNSClientOptions.IndependentCache,
+		Hosts:            dnsHosts,
 		RDRC: func() dns.RDRCStore {
 			cacheFile := service.FromContext[adapter.CacheFile](ctx)
 			if cacheFile == nil {
@@ -216,6 +229,7 @@ func NewRouter(
 			if len(server.Address) == 0 {
 				return nil, E.New("parse dns server[", tag, "]: missing address")
 			}
+			detour = dns.NewDefaultDialer(detour, router.dnsClient, time.Duration(server.AddressFallbackDelay))
 			var needUpstream bool
 			for i, address := range server.Address {
 				address = strings.TrimSpace(address)
@@ -250,10 +264,15 @@ func NewRouter(
 					if serverAddress == "" {
 						serverAddress = address
 					}
-					if !M.ParseSocksaddr(serverAddress).Addr.IsValid() {
-						needUpstream = true
-						break
+					if M.ParseSocksaddr(serverAddress).Addr.IsValid() {
+						continue
 					}
+					serverAddress = router.dnsClient.GetExactDomainFromHosts(ctx, serverAddress, true)
+					if addrs := router.dnsClient.GetAddrsFromHosts(ctx, serverAddress, router.defaultDomainStrategy, true); len(addrs) > 0 {
+						continue
+					}
+					needUpstream = true
+					break
 				}
 			}
 			if needUpstream {
@@ -940,15 +959,24 @@ func (r *Router) RouteConnection(ctx context.Context, conn net.Conn, metadata ad
 		}
 	}
 
-	if metadata.Destination.IsFqdn() && dns.DomainStrategy(metadata.InboundOptions.DomainStrategy) != dns.DomainStrategyAsIS {
-		addresses, err := r.Lookup(adapter.WithContext(ctx, &metadata), metadata.Destination.Fqdn, dns.DomainStrategy(metadata.InboundOptions.DomainStrategy))
-		if err != nil {
-			return err
+	if metadata.Destination.IsFqdn() {
+		metadata.Destination.Fqdn = r.dnsClient.GetExactDomainFromHosts(ctx, metadata.Destination.Fqdn, false)
+		inboundStrategy := dns.DomainStrategy(metadata.InboundOptions.DomainStrategy)
+		strategy := inboundStrategy
+		if strategy == dns.DomainStrategyAsIS {
+			strategy = r.defaultDomainStrategy
 		}
-		metadata.DestinationAddresses = addresses
-		r.dnsLogger.DebugContext(ctx, "resolved [", strings.Join(F.MapToString(metadata.DestinationAddresses), " "), "]")
-	}
-	if metadata.Destination.IsIPv4() {
+		if responseAddrs := r.dnsClient.GetAddrsFromHosts(ctx, metadata.Destination.Fqdn, strategy, false); len(responseAddrs) > 0 {
+			metadata.DestinationAddresses = responseAddrs
+		} else if inboundStrategy != dns.DomainStrategyAsIS {
+			addresses, err := r.lookup(adapter.WithContext(ctx, &metadata), metadata.Destination.Fqdn, dns.DomainStrategy(metadata.InboundOptions.DomainStrategy))
+			if err != nil {
+				return err
+			}
+			metadata.DestinationAddresses = addresses
+			r.dnsLogger.DebugContext(ctx, "resolved [", strings.Join(F.MapToString(metadata.DestinationAddresses), " "), "]")
+		}
+	} else if metadata.Destination.IsIPv4() {
 		metadata.IPVersion = 4
 	} else if metadata.Destination.IsIPv6() {
 		metadata.IPVersion = 6
@@ -1115,15 +1143,24 @@ func (r *Router) RoutePacketConnection(ctx context.Context, conn N.PacketConn, m
 			r.logger.DebugContext(ctx, "found reserve mapped domain: ", metadata.Domain)
 		}
 	}
-	if metadata.Destination.IsFqdn() && dns.DomainStrategy(metadata.InboundOptions.DomainStrategy) != dns.DomainStrategyAsIS {
-		addresses, err := r.Lookup(adapter.WithContext(ctx, &metadata), metadata.Destination.Fqdn, dns.DomainStrategy(metadata.InboundOptions.DomainStrategy))
-		if err != nil {
-			return err
+	if metadata.Destination.IsFqdn() {
+		metadata.Destination.Fqdn = r.dnsClient.GetExactDomainFromHosts(ctx, metadata.Destination.Fqdn, false)
+		inboundStrategy := dns.DomainStrategy(metadata.InboundOptions.DomainStrategy)
+		strategy := inboundStrategy
+		if strategy == dns.DomainStrategyAsIS {
+			strategy = r.defaultDomainStrategy
 		}
-		metadata.DestinationAddresses = addresses
-		r.dnsLogger.DebugContext(ctx, "resolved [", strings.Join(F.MapToString(metadata.DestinationAddresses), " "), "]")
-	}
-	if metadata.Destination.IsIPv4() {
+		if responseAddrs := r.dnsClient.GetAddrsFromHosts(ctx, metadata.Destination.Fqdn, strategy, false); len(responseAddrs) > 0 {
+			metadata.DestinationAddresses = responseAddrs
+		} else if inboundStrategy != dns.DomainStrategyAsIS {
+			addresses, err := r.lookup(adapter.WithContext(ctx, &metadata), metadata.Destination.Fqdn, dns.DomainStrategy(metadata.InboundOptions.DomainStrategy))
+			if err != nil {
+				return err
+			}
+			metadata.DestinationAddresses = addresses
+			r.dnsLogger.DebugContext(ctx, "resolved [", strings.Join(F.MapToString(metadata.DestinationAddresses), " "), "]")
+		}
+	} else if metadata.Destination.IsIPv4() {
 		metadata.IPVersion = 4
 	} else if metadata.Destination.IsIPv6() {
 		metadata.IPVersion = 6

@@ -83,11 +83,13 @@ func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextL
 	if err != nil {
 		return nil, err
 	}
-	return &Outbound{
+	outbound := &Outbound{
 		Adapter: outbound.NewAdapterWithDialerOptions(C.TypeHysteria2, tag, networkList, options.DialerOptions),
 		logger:  logger,
 		client:  client,
-	}, nil
+	}
+	outbound.SetPort(options.ServerPort)
+	return outbound, nil
 }
 
 func (h *Outbound) DialContext(ctx context.Context, network string, destination M.Socksaddr) (net.Conn, error) {

@@ -15,7 +15,8 @@
         "address_strategy": "",
         "strategy": "",
         "detour": "",
-        "client_subnet": ""
+        "client_subnet": "",
+        "insecure": false
       }
     ]
   }
@@ -111,3 +112,9 @@ DNS 服务器的地址组。
 可以被 `rules.[].client_subnet` 覆盖。
 
 将覆盖 `dns.client_subnet`。
+
+#### insecure
+
+接受任何服务器证书。
+
+仅在地址组中含有 HTTPS/TLS/HTTP3/QUIC 协议时生效。

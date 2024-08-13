@@ -63,6 +63,7 @@ func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextL
 		hostKeyAlgorithms: options.HostKeyAlgorithms,
 		clientVersion:     options.ClientVersion,
 	}
+	outbound.SetPort(options.ServerPort)
 	if outbound.serverAddr.Port == 0 {
 		outbound.serverAddr.Port = 22
 	}

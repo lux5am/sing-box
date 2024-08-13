@@ -194,6 +194,10 @@ func (m *Manager) Default() adapter.Outbound {
 	}
 }
 
+func (m *Manager) DefaultFallback() adapter.Outbound {
+	return m.defaultOutboundFallback
+}
+
 func (m *Manager) Remove(tag string) error {
 	m.access.Lock()
 	defer m.access.Unlock()
@@ -236,6 +240,10 @@ func (m *Manager) Remove(tag string) error {
 		return common.Close(outbound)
 	}
 	return nil
+}
+
+func (m *Manager) CreateOutbound(ctx context.Context, router adapter.Router, logger log.ContextLogger, tag string, inboundType string, options any) (adapter.Outbound, error) {
+	return m.registry.CreateOutbound(ctx, router, logger, tag, inboundType, options)
 }
 
 func (m *Manager) Create(ctx context.Context, router adapter.Router, logger log.ContextLogger, tag string, inboundType string, options any) error {

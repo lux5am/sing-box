@@ -11,6 +11,9 @@ import (
 // Note: for proxy protocols, outbound creates early connections by default.
 
 type Outbound interface {
+	Port() int
+	SetPort(port uint16)
+	SetTag(tag string)
 	Type() string
 	Tag() string
 	Network() []string
@@ -28,6 +31,8 @@ type OutboundManager interface {
 	Outbounds() []Outbound
 	Outbound(tag string) (Outbound, bool)
 	Default() Outbound
+	DefaultFallback() Outbound
 	Remove(tag string) error
 	Create(ctx context.Context, router Router, logger log.ContextLogger, tag string, outboundType string, options any) error
+	CreateOutbound(ctx context.Context, router Router, logger log.ContextLogger, tag string, outboundType string, options any) (Outbound, error)
 }

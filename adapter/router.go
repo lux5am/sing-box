@@ -20,6 +20,8 @@ import (
 type Router interface {
 	Lifecycle
 	ConnectionRouter
+	OutboundManager() OutboundManager
+	ProviderManager() OutboundProviderManager
 	PreMatch(metadata InboundContext) error
 	ConnectionRouterEx
 	RuleSet(tag string) (RuleSet, bool)

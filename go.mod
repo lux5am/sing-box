@@ -9,6 +9,7 @@ require (
 	github.com/coder/websocket v1.8.14
 	github.com/cretz/bine v0.2.0
 	github.com/database64128/tfo-go/v2 v2.3.2
+	github.com/dlclark/regexp2 v1.11.5
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/go-chi/render v1.0.3
 	github.com/godbus/dbus/v5 v5.2.2
@@ -58,6 +59,7 @@ require (
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20241231184526-a9ab2273dd10
 	google.golang.org/grpc v1.79.1
 	google.golang.org/protobuf v1.36.11
+	gopkg.in/yaml.v3 v3.0.1
 	howett.net/plist v1.0.1
 )
 
@@ -163,6 +165,5 @@ require (
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
 	golang.zx2c4.com/wireguard/windows v0.5.3 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251202230838-ff82c1b0f217 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
 )

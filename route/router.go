@@ -40,6 +40,7 @@ type Router struct {
 	dnsLogger               log.ContextLogger
 	inbound                 adapter.InboundManager
 	outbound                adapter.OutboundManager
+	provider                adapter.OutboundProviderManager
 	connection              adapter.ConnectionManager
 	network                 adapter.NetworkManager
 	rules                   []adapter.Rule
@@ -77,6 +78,7 @@ func NewRouter(ctx context.Context, logFactory log.Factory, options option.Route
 		dnsLogger:             logFactory.NewLogger("dns"),
 		inbound:               service.FromContext[adapter.InboundManager](ctx),
 		outbound:              service.FromContext[adapter.OutboundManager](ctx),
+		provider:              service.FromContext[adapter.OutboundProviderManager](ctx),
 		connection:            service.FromContext[adapter.ConnectionManager](ctx),
 		network:               service.FromContext[adapter.NetworkManager](ctx),
 		rules:                 make([]adapter.Rule, 0, len(options.Rules)),
@@ -157,6 +159,7 @@ func NewRouter(ctx context.Context, logFactory log.Factory, options option.Route
 		transportTagMap[tag] = true
 	}
 	outboundManager := service.FromContext[adapter.OutboundManager](ctx)
+	providerManager := service.FromContext[adapter.OutboundProviderManager](ctx)
 	for {
 		lastLen := len(dummyTransportMap)
 		for i, server := range dnsOptions.Servers {
@@ -168,7 +171,7 @@ func NewRouter(ctx context.Context, logFactory log.Factory, options option.Route
 			if server.Detour == "" {
 				detour = dialer.NewDefaultOutbound(outboundManager)
 			} else {
-				detour = dialer.NewDetour(outboundManager, server.Detour)
+				detour = dialer.NewDetour(providerManager, server.Detour)
 			}
 			var serverProtocol string
 			switch server.Address {
@@ -487,6 +490,14 @@ func (r *Router) Close() error {
 	return err
 }
 
+func (r *Router) OutboundManager() adapter.OutboundManager {
+	return r.outbound
+}
+
+func (r *Router) ProviderManager() adapter.OutboundProviderManager {
+	return r.provider
+}
+
 func (r *Router) FakeIPStore() adapter.FakeIPStore {
 	return r.fakeIPStore
 }
@@ -517,4 +528,6 @@ func (r *Router) ResetNetwork() {
 	for _, transport := range r.transports {
 		transport.Reset()
 	}
+
+	runtime.GC()
 }

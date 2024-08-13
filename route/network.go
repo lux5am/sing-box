@@ -50,6 +50,7 @@ type NetworkManager struct {
 	endpoint               adapter.EndpointManager
 	inbound                adapter.InboundManager
 	outbound               adapter.OutboundManager
+	provider               adapter.OutboundProviderManager
 	wifiState              adapter.WIFIState
 	started                bool
 }
@@ -369,6 +370,13 @@ func (r *NetworkManager) ResetNetwork() {
 
 	for _, inbound := range r.inbound.Inbounds() {
 		listener, isListener := inbound.(adapter.InterfaceUpdateListener)
+		if isListener {
+			listener.InterfaceUpdated()
+		}
+	}
+
+	for _, provider := range r.provider.OutboundProviders() {
+		listener, isListener := provider.(adapter.InterfaceUpdateListener)
 		if isListener {
 			listener.InterfaceUpdated()
 		}

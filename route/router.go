@@ -243,6 +243,7 @@ func NewRouter(ctx context.Context, logFactory log.Factory, options option.Route
 				Dialer:       detour,
 				Address:      server.Address,
 				ClientSubnet: clientSubnet,
+				Insecure:     server.Insecure,
 			})
 			if err != nil {
 				return nil, E.Cause(err, "parse dns server[", tag, "]")

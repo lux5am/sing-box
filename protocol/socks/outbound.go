@@ -56,6 +56,7 @@ func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextL
 		client:  socks.NewClient(outboundDialer, options.ServerOptions.Build(), version, options.Username, options.Password),
 		resolve: version == socks.Version4,
 	}
+	outbound.SetPort(options.ServerPort)
 	uotOptions := common.PtrValueOrDefault(options.UDPOverTCP)
 	if uotOptions.Enabled {
 		outbound.uotClient = &uot.Client{

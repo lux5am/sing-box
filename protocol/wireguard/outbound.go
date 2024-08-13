@@ -50,6 +50,7 @@ func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextL
 		logger:         logger,
 		localAddresses: options.LocalAddress,
 	}
+	outbound.SetPort(options.ServerPort)
 	if options.Detour != "" && options.GSO {
 		return nil, E.New("gso is conflict with detour")
 	}

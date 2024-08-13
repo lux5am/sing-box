@@ -3,11 +3,12 @@ package option
 import "net/netip"
 
 type DNSOptions struct {
-	Servers        []DNSServerOptions `json:"servers,omitempty"`
-	Rules          []DNSRule          `json:"rules,omitempty"`
-	Final          string             `json:"final,omitempty"`
-	ReverseMapping bool               `json:"reverse_mapping,omitempty"`
-	FakeIP         *DNSFakeIPOptions  `json:"fakeip,omitempty"`
+	Servers        []DNSServerOptions          `json:"servers,omitempty"`
+	Rules          []DNSRule                   `json:"rules,omitempty"`
+	Final          string                      `json:"final,omitempty"`
+	ReverseMapping bool                        `json:"reverse_mapping,omitempty"`
+	Hosts          map[string]Listable[string] `json:"hosts,omitempty"`
+	FakeIP         *DNSFakeIPOptions           `json:"fakeip,omitempty"`
 	DNSClientOptions
 }
 

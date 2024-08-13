@@ -15,7 +15,8 @@
         "address_strategy": "",
         "strategy": "",
         "detour": "",
-        "client_subnet": ""
+        "client_subnet": "",
+        "insecure": false
       }
     ]
   }
@@ -111,3 +112,9 @@ If value is an IP address instead of prefix, `/32` or `/128` will be appended au
 Can be overrides by `rules.[].client_subnet`.
 
 Will overrides `dns.client_subnet`.
+
+#### insecure
+
+Accepts any server certificate.
+
+Only action when addresses contains HTTPS/TLS/HTTP3/QUIC protocol.

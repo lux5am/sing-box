@@ -31,6 +31,7 @@ func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextL
 	outbound := &Outbound{
 		Adapter: outbound.NewAdapterWithDialerOptions(C.TypeShadowTLS, tag, []string{N.NetworkTCP}, options.DialerOptions),
 	}
+	outbound.SetPort(options.ServerPort)
 	if options.TLS == nil || !options.TLS.Enabled {
 		return nil, C.ErrTLSRequired
 	}

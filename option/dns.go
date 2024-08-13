@@ -12,6 +12,7 @@ type DNSOptions struct {
 	Final          string             `json:"final,omitempty"`
 	ReverseMapping bool               `json:"reverse_mapping,omitempty"`
 	FakeIP         *DNSFakeIPOptions  `json:"fakeip,omitempty"`
+	Hosts          map[string]badoption.Listable[string] `json:"hosts,omitempty"`
 	DNSClientOptions
 }
 

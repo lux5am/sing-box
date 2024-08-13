@@ -20,6 +20,7 @@ type DNSServerOptions struct {
 	Strategy             DomainStrategy   `json:"strategy,omitempty"`
 	Detour               string           `json:"detour,omitempty"`
 	ClientSubnet         *AddrPrefix      `json:"client_subnet,omitempty"`
+	Insecure             bool             `json:"insecure,omitempty"`
 }
 
 type DNSClientOptions struct {

@@ -23,7 +23,14 @@ icon: material/new-box
     "cache_capacity": 0,
     "reverse_mapping": false,
     "client_subnet": "",
-    "fakeip": {}
+    "fakeip": {},
+    "hosts": {
+      "www.abc.com": "www.bcd.com",
+      "www.def.com": [
+        "127.0.0.1",
+        "fe80::"
+      ]
+    }
   }
 }
 
@@ -89,3 +96,13 @@ LRU 缓存容量。
 #### fakeip
 
 [FakeIP](./fakeip/) 设置。
+
+#### hosts
+
+!!! note ""
+
+    当内容只有一项时，可以忽略 JSON 数组 [] 标签
+
+设置私有 DNS 记录，支持 CNAME/A/AAAA 类型。
+
+CNAME 类型记录仅可被单独使用。

@@ -94,11 +94,24 @@ func NewRouter(ctx context.Context, logFactory log.Factory, options option.Route
 		needWIFIState:         hasRule(options.Rules, isWIFIRule) || hasDNSRule(dnsOptions.Rules, isWIFIDNSRule),
 	}
 	service.MustRegister[adapter.Router](ctx, router)
+	var dnsHosts *dns.Hosts
+	if len(dnsOptions.Hosts) > 0 {
+		var err error
+		hostsMap := make(map[string][]string)
+		for domain, hosts := range dnsOptions.Hosts {
+			hostsMap[domain] = hosts
+		}
+		dnsHosts, err = dns.NewHosts(hostsMap)
+		if err != nil {
+			return nil, err
+		}
+	}
 	router.dnsClient = dns.NewClient(dns.ClientOptions{
 		DisableCache:     dnsOptions.DNSClientOptions.DisableCache,
 		DisableExpire:    dnsOptions.DNSClientOptions.DisableExpire,
 		IndependentCache: dnsOptions.DNSClientOptions.IndependentCache,
 		CacheCapacity:    dnsOptions.DNSClientOptions.CacheCapacity,
+		Hosts:            dnsHosts,
 		RDRC: func() dns.RDRCStore {
 			cacheFile := service.FromContext[adapter.CacheFile](ctx)
 			if cacheFile == nil {
@@ -174,6 +187,7 @@ func NewRouter(ctx context.Context, logFactory log.Factory, options option.Route
 			if len(server.Address) == 0 {
 				return nil, E.New("parse dns server[", tag, "]: missing address")
 			}
+			detour = dns.NewDefaultDialer(detour, router.dnsClient, time.Duration(server.AddressFallbackDelay))
 			var needUpstream bool
 			for i, address := range server.Address {
 				address = strings.TrimSpace(address)
@@ -208,10 +222,15 @@ func NewRouter(ctx context.Context, logFactory log.Factory, options option.Route
 					if serverAddress == "" {
 						serverAddress = address
 					}
-					if !M.ParseSocksaddr(serverAddress).Addr.IsValid() {
-						needUpstream = true
-						break
+					if M.ParseSocksaddr(serverAddress).Addr.IsValid() {
+						continue
 					}
+					serverAddress = router.dnsClient.GetExactDomainFromHosts(ctx, serverAddress, true)
+					if addrs := router.dnsClient.GetAddrsFromHosts(ctx, serverAddress, router.defaultDomainStrategy, true); len(addrs) > 0 {
+						continue
+					}
+					needUpstream = true
+					break
 				}
 			}
 			if needUpstream {

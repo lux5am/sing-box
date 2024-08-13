@@ -126,7 +126,7 @@ func (tt *TCPConn) WriterReplaceable() bool {
 	return true
 }
 
-func NewTCPTracker(conn net.Conn, manager *Manager, metadata adapter.InboundContext, outboundManager adapter.OutboundManager, matchRule adapter.Rule, matchOutbound adapter.Outbound) *TCPConn {
+func NewTCPTracker(conn net.Conn, manager *Manager, metadata adapter.InboundContext, outboundManager adapter.OutboundManager, providerManager adapter.OutboundProviderManager, matchRule adapter.Rule, matchOutbound adapter.Outbound) *TCPConn {
 	id, _ := uuid.NewV4()
 	var (
 		chain        []string
@@ -140,7 +140,7 @@ func NewTCPTracker(conn net.Conn, manager *Manager, metadata adapter.InboundCont
 		next = outboundManager.Default().Tag()
 	}
 	for {
-		detour, loaded := outboundManager.Outbound(next)
+		detour, loaded := providerManager.OutboundWithProvider(next)
 		if !loaded {
 			break
 		}
@@ -207,7 +207,7 @@ func (ut *UDPConn) WriterReplaceable() bool {
 	return true
 }
 
-func NewUDPTracker(conn N.PacketConn, manager *Manager, metadata adapter.InboundContext, outboundManager adapter.OutboundManager, matchRule adapter.Rule, matchOutbound adapter.Outbound) *UDPConn {
+func NewUDPTracker(conn N.PacketConn, manager *Manager, metadata adapter.InboundContext, outboundManager adapter.OutboundManager, providerManager adapter.OutboundProviderManager, matchRule adapter.Rule, matchOutbound adapter.Outbound) *UDPConn {
 	id, _ := uuid.NewV4()
 	var (
 		chain        []string
@@ -221,7 +221,7 @@ func NewUDPTracker(conn N.PacketConn, manager *Manager, metadata adapter.Inbound
 		next = outboundManager.Default().Tag()
 	}
 	for {
-		detour, loaded := outboundManager.Outbound(next)
+		detour, loaded := providerManager.OutboundWithProvider(next)
 		if !loaded {
 			break
 		}

@@ -17,6 +17,7 @@ type _Options struct {
 	Endpoints    []Endpoint           `json:"endpoints,omitempty"`
 	Inbounds     []Inbound            `json:"inbounds,omitempty"`
 	Outbounds    []Outbound           `json:"outbounds,omitempty"`
+	OutboundProviders []OutboundProvider `json:"outbound_providers,omitempty"`
 	Route        *RouteOptions        `json:"route,omitempty"`
 	Experimental *ExperimentalOptions `json:"experimental,omitempty"`
 }
@@ -40,6 +41,21 @@ type LogOptions struct {
 	Output       string `json:"output,omitempty"`
 	Timestamp    bool   `json:"timestamp,omitempty"`
 	DisableColor bool   `json:"-"`
+}
+
+type _OutboundProviderOptions struct {
+	Outbounds []Outbound `json:"outbounds"`
+}
+
+type OutboundProviderOptions _OutboundProviderOptions
+
+func (o *OutboundProviderOptions) UnmarshalJSON(content []byte) error {
+	decoder := json.NewDecoder(bytes.NewReader(content))
+	err := decoder.Decode((*_OutboundProviderOptions)(o))
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 type StubOptions struct{}

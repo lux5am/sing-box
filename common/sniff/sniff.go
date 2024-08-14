@@ -54,25 +54,58 @@ func PeekStream(ctx context.Context, metadata *adapter.InboundContext, conn net.
 			return E.Cause(err, "read payload")
 		}
 		errors = nil
+		snifferCounts := len(sniffers)
+		errorsChan := make(chan error, len(sniffers))
+		fastClose, cancel := context.WithCancel(ctx)
 		for _, sniffer := range sniffers {
-			err = sniffer(ctx, metadata, bytes.NewReader(buffer.Bytes()))
+			go func(sniffer StreamSniffer) {
+				errorsChan <- sniffer(fastClose, metadata, bytes.NewReader(buffer.Bytes()))
+			}(sniffer)
+		}
+		for i := 0; i < snifferCounts; i++ {
+			err := <-errorsChan
 			if err == nil {
+				go func(index int) {
+					for i := index; i < snifferCounts; i++ {
+						<-errorsChan
+					}
+					close(errorsChan)
+				}(i + 1)
+				cancel()
 				return nil
 			}
 			errors = append(errors, err)
 		}
+		close(errorsChan)
+		cancel()
 	}
 	return E.Errors(errors...)
 }
 
 func PeekPacket(ctx context.Context, metadata *adapter.InboundContext, packet []byte, sniffers ...PacketSniffer) error {
 	var errors []error
+	snifferCounts := len(sniffers)
+	errorsChan := make(chan error, len(sniffers))
+	fastClose, cancel := context.WithCancel(ctx)
+	defer cancel()
 	for _, sniffer := range sniffers {
-		err := sniffer(ctx, metadata, packet)
+		go func(sniffer PacketSniffer) {
+			errorsChan <- sniffer(fastClose, metadata, packet)
+		}(sniffer)
+	}
+	for i := 0; i < snifferCounts; i++ {
+		err := <-errorsChan
 		if err == nil {
+			go func(index int) {
+				for i := index; i < snifferCounts; i++ {
+					<-errorsChan
+				}
+				close(errorsChan)
+			}(i + 1)
 			return nil
 		}
 		errors = append(errors, err)
 	}
+	close(errorsChan)
 	return E.Errors(errors...)
 }

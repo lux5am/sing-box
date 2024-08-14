@@ -727,7 +727,7 @@ func (t *autoRedirectHandler) NewConnectionEx(ctx context.Context, conn net.Conn
 	ctx = log.ContextWithNewID(ctx)
 	var metadata adapter.InboundContext
 	metadata.Inbound = t.tag
-	metadata.InboundType = C.TypeTun
+	metadata.InboundType = C.TypeRedirect
 	metadata.Source = source
 	metadata.Destination = t.redirectDNSDestination(source, destination)
 	if (*Inbound)(t).isDNSHijackDestination(metadata.Destination) {

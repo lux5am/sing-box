@@ -10,7 +10,7 @@
     "servers": [
       {
         "tag": "",
-        "address": "",
+        "address": [],
         "address_resolver": "",
         "address_strategy": "",
         "strategy": "",
@@ -22,6 +22,10 @@
 }
 ```
 
+!!! note ""
+
+    You can ignore the JSON Array [] tag when the content is only one item
+
 ### Fields
 
 #### tag
@@ -32,7 +36,7 @@ The tag of the dns server.
 
 ==Required==
 
-The address of the dns server.
+The addresses of the dns server.
 
 | Protocol                             | Format                        |
 |--------------------------------------|-------------------------------|
@@ -50,6 +54,10 @@ The address of the dns server.
 !!! warning ""
 
     To ensure that Android system DNS is in effect, rather than Go's built-in default resolver, enable CGO at compile time.
+
+!!! warning ""
+
+    System/RCode/FakeIP transport can only used alone.
 
 !!! info ""
 

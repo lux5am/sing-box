@@ -171,35 +171,60 @@ func NewRouter(ctx context.Context, logFactory log.Factory, options option.Route
 				detour = dialer.NewDetour(outboundManager, server.Detour)
 			}
 			var serverProtocol string
-			switch server.Address {
-			case "local":
-				serverProtocol = "local"
-			default:
-				serverURL, _ := url.Parse(server.Address)
-				var serverAddress string
-				if serverURL != nil {
-					if serverURL.Scheme == "" {
-						serverProtocol = "udp"
-					} else {
-						serverProtocol = serverURL.Scheme
+			if len(server.Address) == 0 {
+				return nil, E.New("parse dns server[", tag, "]: missing address")
+			}
+			var needUpstream bool
+			for i, address := range server.Address {
+				address = strings.TrimSpace(address)
+				switch strings.ToLower(address) {
+				case "":
+					return nil, E.New("parse dns server[", tag, "].address[", i, "]: empty address")
+				case "local":
+					serverProtocol = "local"
+				case "fakeip":
+				default:
+					var serverAddress string
+					if strings.Contains(address, "://") {
+						serverURL, _ := url.Parse(address)
+						if serverURL != nil {
+							if common.Contains([]string{"rcode", "dhcp"}, serverURL.Scheme) {
+								continue
+							}
+							if serverURL.Scheme == "" {
+								serverProtocol = "udp"
+							} else {
+								serverProtocol = serverURL.Scheme
+							}
+							if serverURL.Hostname() != "" {
+								serverAddress = serverURL.Hostname()
+							} else if serverURL.Scheme != "" {
+								return nil, E.New("parse dns server[", tag, "].address[", i, "]: missing hostname")
+							} else {
+								serverAddress = serverURL.Path
+							}
+						}
 					}
-					serverAddress = serverURL.Hostname()
+					if serverAddress == "" {
+						serverAddress = address
+					}
+					if !M.ParseSocksaddr(serverAddress).Addr.IsValid() {
+						needUpstream = true
+						break
+					}
 				}
-				if serverAddress == "" {
-					serverAddress = server.Address
-				}
-				notIpAddress := !M.ParseSocksaddr(serverAddress).Addr.IsValid()
-				if server.AddressResolver != "" {
-					if !transportTagMap[server.AddressResolver] {
-						return nil, E.New("parse dns server[", tag, "]: address resolver not found: ", server.AddressResolver)
-					}
-					if upstream, exists := dummyTransportMap[server.AddressResolver]; exists {
-						detour = dns.NewDialerWrapper(detour, router.dnsClient, upstream, dns.DomainStrategy(server.AddressStrategy), time.Duration(server.AddressFallbackDelay))
-					} else {
-						continue
-					}
-				} else if notIpAddress && strings.Contains(server.Address, ".") {
+			}
+			if needUpstream {
+				if server.AddressResolver == "" {
 					return nil, E.New("parse dns server[", tag, "]: missing address_resolver")
+				}
+				if !transportTagMap[server.AddressResolver] {
+					return nil, E.New("parse dns server[", tag, "]: address resolver not found: ", server.AddressResolver)
+				}
+				if upstream, exists := dummyTransportMap[server.AddressResolver]; exists {
+					detour = dns.NewDialerWrapper(detour, router.dnsClient, upstream, dns.DomainStrategy(server.AddressStrategy), time.Duration(server.AddressFallbackDelay))
+				} else {
+					continue
 				}
 			}
 			var clientSubnet netip.Prefix
@@ -261,7 +286,7 @@ func NewRouter(ctx context.Context, logFactory log.Factory, options option.Route
 			transports = append(transports, common.Must1(dns.CreateTransport(dns.TransportOptions{
 				Context: ctx,
 				Name:    "local",
-				Address: "local",
+				Address: []string{"local"},
 				Dialer:  common.Must1(dialer.NewDefault(ctx, option.DialerOptions{})),
 			})))
 		}

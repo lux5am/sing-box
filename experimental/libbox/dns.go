@@ -24,10 +24,13 @@ type LocalDNSTransport interface {
 func RegisterLocalDNSTransport(transport LocalDNSTransport) {
 	if transport == nil {
 		dns.RegisterTransport([]string{"local"}, func(options dns.TransportOptions) (dns.Transport, error) {
-			return dns.NewLocalTransport(options), nil
+			return dns.NewLocalTransport(options)
 		})
 	} else {
 		dns.RegisterTransport([]string{"local"}, func(options dns.TransportOptions) (dns.Transport, error) {
+			if len(options.Address) > 1 {
+				return nil, E.New("system transport can only be used alone")
+			}
 			return &platformLocalDNSTransport{
 				iif: transport,
 			}, nil

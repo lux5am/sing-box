@@ -32,6 +32,9 @@ type Transport struct {
 }
 
 func NewTransport(options dns.TransportOptions) (*Transport, error) {
+	if len(options.Address) > 1 {
+		return nil, E.New("fakeip transport can only be used alone")
+	}
 	router := adapter.RouterFromContext(options.Context)
 	if router == nil {
 		return nil, E.New("missing router in context")

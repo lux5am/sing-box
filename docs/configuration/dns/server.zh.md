@@ -14,7 +14,7 @@ icon: material/new-box
     "servers": [
       {
         "tag": "",
-        "address": "",
+        "address": [],
         "address_resolver": "",
         "address_strategy": "",
         "strategy": "",
@@ -26,6 +26,10 @@ icon: material/new-box
 }
 ```
 
+!!! note ""
+
+    当内容只有一项时，可以忽略 JSON 数组 [] 标签
+
 ### 字段
 
 #### tag
@@ -36,7 +40,7 @@ DNS 服务器的标签。
 
 ==必填==
 
-DNS 服务器的地址。
+DNS 服务器的地址组。
 
 | 协议                                   | 格式                           |
 |--------------------------------------|------------------------------|
@@ -54,6 +58,10 @@ DNS 服务器的地址。
 !!! warning ""
 
     为了确保 Android 系统 DNS 生效，而不是 Go 的内置默认解析器，请在编译时启用 CGO。
+
+!!! warning ""
+
+    System/RCode/FakeIP 传输层仅可单独使用
 
 !!! info ""
 

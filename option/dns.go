@@ -17,7 +17,7 @@ type DNSOptions struct {
 
 type DNSServerOptions struct {
 	Tag                  string                `json:"tag,omitempty"`
-	Address              string                `json:"address"`
+	Address              badoption.Listable[string] `json:"address"`
 	AddressResolver      string                `json:"address_resolver,omitempty"`
 	AddressStrategy      DomainStrategy        `json:"address_strategy,omitempty"`
 	AddressFallbackDelay badoption.Duration    `json:"address_fallback_delay,omitempty"`

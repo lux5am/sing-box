@@ -29,23 +29,23 @@ import (
 )
 
 func init() {
-	dns.RegisterTransport([]string{"dhcp"}, func(options dns.TransportOptions) (dns.Transport, error) {
-		return NewTransport(options)
+	dns.RegisterUpstream([]string{"dhcp"}, func(options dns.UpstreamOptions) (dns.Upstream, error) {
+		return NewUpstream(options)
 	})
 }
 
-type Transport struct {
-	options           dns.TransportOptions
+type Upstream struct {
+	options           dns.UpstreamOptions
 	router            adapter.Router
 	interfaceName     string
 	autoInterface     bool
 	interfaceCallback *list.Element[tun.DefaultInterfaceUpdateCallback]
-	transports        []dns.Transport
+	upstreams         []dns.Upstream
 	updateAccess      sync.Mutex
 	updatedAt         time.Time
 }
 
-func NewTransport(options dns.TransportOptions) (*Transport, error) {
+func NewUpstream(options dns.UpstreamOptions) (*Upstream, error) {
 	linkURL, err := url.Parse(options.Address)
 	if err != nil {
 		return nil, err
@@ -57,20 +57,16 @@ func NewTransport(options dns.TransportOptions) (*Transport, error) {
 	if router == nil {
 		return nil, E.New("missing router in context")
 	}
-	transport := &Transport{
+	upstream := &Upstream{
 		options:       options,
 		router:        router,
 		interfaceName: linkURL.Host,
 		autoInterface: linkURL.Host == "auto",
 	}
-	return transport, nil
+	return upstream, nil
 }
 
-func (t *Transport) Name() string {
-	return t.options.Name
-}
-
-func (t *Transport) Start() error {
+func (t *Upstream) Start() error {
 	err := t.fetchServers()
 	if err != nil {
 		return err
@@ -81,15 +77,15 @@ func (t *Transport) Start() error {
 	return nil
 }
 
-func (t *Transport) Reset() {
-	for _, transport := range t.transports {
-		transport.Reset()
+func (t *Upstream) Reset() {
+	for _, upstream := range t.upstreams {
+		upstream.Reset()
 	}
 }
 
-func (t *Transport) Close() error {
-	for _, transport := range t.transports {
-		transport.Close()
+func (t *Upstream) Close() error {
+	for _, upstream := range t.upstreams {
+		upstream.Close()
 	}
 	if t.interfaceCallback != nil {
 		t.router.InterfaceMonitor().UnregisterCallback(t.interfaceCallback)
@@ -97,23 +93,19 @@ func (t *Transport) Close() error {
 	return nil
 }
 
-func (t *Transport) Raw() bool {
-	return true
-}
-
-func (t *Transport) Exchange(ctx context.Context, message *mDNS.Msg) (*mDNS.Msg, error) {
+func (t *Upstream) Exchange(ctx context.Context, message *mDNS.Msg) (*mDNS.Msg, error) {
 	err := t.fetchServers()
 	if err != nil {
 		return nil, err
 	}
 
-	if len(t.transports) == 0 {
+	if len(t.upstreams) == 0 {
 		return nil, E.New("dhcp: empty DNS servers from response")
 	}
 
 	var response *mDNS.Msg
-	for _, transport := range t.transports {
-		response, err = transport.Exchange(ctx, message)
+	for _, upstream := range t.upstreams {
+		response, err = upstream.Exchange(ctx, message)
 		if err == nil {
 			return response, nil
 		}
@@ -121,7 +113,7 @@ func (t *Transport) Exchange(ctx context.Context, message *mDNS.Msg) (*mDNS.Msg,
 	return nil, err
 }
 
-func (t *Transport) fetchInterface() (*net.Interface, error) {
+func (t *Upstream) fetchInterface() (*net.Interface, error) {
 	interfaceName := t.interfaceName
 	if t.autoInterface {
 		if t.router.InterfaceMonitor() == nil {
@@ -135,7 +127,7 @@ func (t *Transport) fetchInterface() (*net.Interface, error) {
 	return net.InterfaceByName(interfaceName)
 }
 
-func (t *Transport) fetchServers() error {
+func (t *Upstream) fetchServers() error {
 	if time.Since(t.updatedAt) < C.DHCPTTL {
 		return nil
 	}
@@ -147,7 +139,7 @@ func (t *Transport) fetchServers() error {
 	return t.updateServers()
 }
 
-func (t *Transport) updateServers() error {
+func (t *Upstream) updateServers() error {
 	iface, err := t.fetchInterface()
 	if err != nil {
 		return E.Cause(err, "dhcp: prepare interface")
@@ -159,7 +151,7 @@ func (t *Transport) updateServers() error {
 	cancel()
 	if err != nil {
 		return err
-	} else if len(t.transports) == 0 {
+	} else if len(t.upstreams) == 0 {
 		return E.New("dhcp: empty DNS servers response")
 	} else {
 		t.updatedAt = time.Now()
@@ -167,14 +159,14 @@ func (t *Transport) updateServers() error {
 	}
 }
 
-func (t *Transport) interfaceUpdated(int) {
+func (t *Upstream) interfaceUpdated(int) {
 	err := t.updateServers()
 	if err != nil {
 		t.options.Logger.Error("update servers: ", err)
 	}
 }
 
-func (t *Transport) fetchServers0(ctx context.Context, iface *net.Interface) error {
+func (t *Upstream) fetchServers0(ctx context.Context, iface *net.Interface) error {
 	var listener net.ListenConfig
 	listener.Control = control.Append(listener.Control, control.BindToInterface(t.router.InterfaceFinder(), iface.Name, iface.Index))
 	listener.Control = control.Append(listener.Control, control.ReuseAddr())
@@ -208,7 +200,7 @@ func (t *Transport) fetchServers0(ctx context.Context, iface *net.Interface) err
 	return group.Run(ctx)
 }
 
-func (t *Transport) fetchServersResponse(iface *net.Interface, packetConn net.PacketConn, transactionID dhcpv4.TransactionID) error {
+func (t *Upstream) fetchServersResponse(iface *net.Interface, packetConn net.PacketConn, transactionID dhcpv4.TransactionID) error {
 	buffer := buf.NewSize(dhcpv4.MaxMessageSize)
 	defer buffer.Release()
 
@@ -248,7 +240,7 @@ func (t *Transport) fetchServersResponse(iface *net.Interface, packetConn net.Pa
 	}
 }
 
-func (t *Transport) recreateServers(iface *net.Interface, serverAddrs []netip.Addr) error {
+func (t *Upstream) recreateServers(iface *net.Interface, serverAddrs []netip.Addr) error {
 	if len(serverAddrs) > 0 {
 		t.options.Logger.Info("dhcp: updated DNS servers from ", iface.Name, ": [", strings.Join(common.Map(serverAddrs, func(it netip.Addr) string {
 			return it.String()
@@ -258,24 +250,26 @@ func (t *Transport) recreateServers(iface *net.Interface, serverAddrs []netip.Ad
 		BindInterface:      iface.Name,
 		UDPFragmentDefault: true,
 	}))
-	var transports []dns.Transport
+	var upstreams []dns.Upstream
 	for _, serverAddr := range serverAddrs {
-		newOptions := t.options
-		newOptions.Address = serverAddr.String()
-		newOptions.Dialer = serverDialer
-		serverTransport, err := dns.NewUDPTransport(newOptions)
+		serverUpstream, err := dns.NewUDPUpstream(dns.UpstreamOptions{
+			Context: t.options.Context,
+			Logger:  t.options.Logger,
+			Address: serverAddr.String(),
+			Dialer:  serverDialer,
+		})
 		if err != nil {
 			return E.Cause(err, "create UDP transport from DHCP result: ", serverAddr)
 		}
-		transports = append(transports, serverTransport)
+		upstreams = append(upstreams, serverUpstream)
 	}
-	for _, transport := range t.transports {
-		transport.Close()
+	for _, upstream := range t.upstreams {
+		upstream.Close()
 	}
-	t.transports = transports
+	t.upstreams = upstreams
 	return nil
 }
 
-func (t *Transport) Lookup(ctx context.Context, domain string, strategy dns.DomainStrategy) ([]netip.Addr, error) {
+func (t *Upstream) Lookup(ctx context.Context, domain string, strategy dns.DomainStrategy) ([]netip.Addr, error) {
 	return nil, os.ErrInvalid
 }

@@ -58,6 +58,7 @@ require (
 )
 
 //replace github.com/sagernet/sing => ../sing
+replace github.com/sagernet/sing-dns v0.3.0 => github.com/lux5am/sing-dns v0.3.1-0.20241219041147-6e4a0c80077f
 
 require (
 	github.com/Dreamacro/protobytes v0.0.0-20230617041236-6500a9f4f158 // indirect

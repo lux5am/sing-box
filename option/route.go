@@ -11,6 +11,9 @@ type RouteOptions struct {
 	OverrideAndroidVPN  bool            `json:"override_android_vpn,omitempty"`
 	DefaultInterface    string          `json:"default_interface,omitempty"`
 	DefaultMark         uint32          `json:"default_mark,omitempty"`
+	DisableTCPKeepAlive bool            `json:"disable_tcp_keep_alive,omitempty"`
+	TCPKeepAliveInitial  Duration       `json:"tcp_keep_alive_initial,omitempty"`
+	TCPKeepAliveInterval Duration       `json:"tcp_keep_alive_interval,omitempty"`
 }
 
 type GeoIPOptions struct {

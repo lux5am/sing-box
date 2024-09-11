@@ -84,8 +84,12 @@ func NewDefault(router adapter.Router, options option.DialerOptions) (*DefaultDi
 		dialer.Timeout = C.TCPConnectTimeout
 	}
 	// TODO: Add an option to customize the keep alive period
-	dialer.KeepAlive = C.TCPKeepAliveInitial
-	dialer.Control = control.Append(dialer.Control, control.SetKeepAlivePeriod(C.TCPKeepAliveInitial, C.TCPKeepAliveInterval))
+	if C.DisableTCPKeepAlive {
+		dialer.KeepAlive = -1
+	} else {
+		dialer.KeepAlive = C.TCPKeepAliveInitial
+		dialer.Control = control.Append(dialer.Control, control.SetKeepAlivePeriod(C.TCPKeepAliveInitial, C.TCPKeepAliveInterval))
+	}
 	var udpFragment bool
 	if options.UDPFragment != nil {
 		udpFragment = *options.UDPFragment

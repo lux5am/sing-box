@@ -96,6 +96,13 @@ func NewRouter(ctx context.Context, logFactory log.Factory, options option.Route
 		needWIFIState:         hasRule(options.Rules, isWIFIRule) || hasDNSRule(dnsOptions.Rules, isWIFIDNSRule),
 	}
 	service.MustRegister[adapter.Router](ctx, router)
+	C.DisableTCPKeepAlive = options.DisableTCPKeepAlive
+	if options.TCPKeepAliveInitial > 0 {
+		C.TCPKeepAliveInitial = time.Duration(options.TCPKeepAliveInitial)
+	}
+	if options.TCPKeepAliveInterval > 0 {
+		C.TCPKeepAliveInterval = time.Duration(options.TCPKeepAliveInterval)
+	}
 	router.dnsClient = dns.NewClient(dns.ClientOptions{
 		DisableCache:     dnsOptions.DNSClientOptions.DisableCache,
 		DisableExpire:    dnsOptions.DNSClientOptions.DisableExpire,

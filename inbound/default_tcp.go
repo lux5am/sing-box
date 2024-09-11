@@ -19,8 +19,12 @@ func (a *myInboundAdapter) ListenTCP() (net.Listener, error) {
 	var tcpListener net.Listener
 	var listenConfig net.ListenConfig
 	// TODO: Add an option to customize the keep alive period
-	listenConfig.KeepAlive = C.TCPKeepAliveInitial
-	listenConfig.Control = control.Append(listenConfig.Control, control.SetKeepAlivePeriod(C.TCPKeepAliveInitial, C.TCPKeepAliveInterval))
+	if C.DisableTCPKeepAlive {
+		listenConfig.KeepAlive = -1
+	} else {
+		listenConfig.KeepAlive = C.TCPKeepAliveInitial
+		listenConfig.Control = control.Append(listenConfig.Control, control.SetKeepAlivePeriod(C.TCPKeepAliveInitial, C.TCPKeepAliveInterval))
+	}
 	if a.listenOptions.TCPMultiPath {
 		if !go121Available {
 			return nil, E.New("MultiPath TCP requires go1.21, please recompile your binary.")

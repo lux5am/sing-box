@@ -72,6 +72,13 @@ type Router struct {
 }
 
 func NewRouter(ctx context.Context, logFactory log.Factory, options option.RouteOptions, dnsOptions option.DNSOptions) (*Router, error) {
+	C.DisableTCPKeepAlive = options.DisableTCPKeepAlive
+	if options.TCPKeepAliveInitial > 0 {
+		C.TCPKeepAliveInitial = time.Duration(options.TCPKeepAliveInitial)
+	}
+	if options.TCPKeepAliveInterval > 0 {
+		C.TCPKeepAliveInterval = time.Duration(options.TCPKeepAliveInterval)
+	}
 	router := &Router{
 		ctx:                   ctx,
 		logger:                logFactory.NewLogger("router"),

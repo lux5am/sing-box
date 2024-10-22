@@ -73,10 +73,13 @@ func (s *HistoryStorage) Close() error {
 	return nil
 }
 
+// URLTest performs a test on unified delay [experimental]
 func URLTest(ctx context.Context, link string, detour N.Dialer) (t uint16, err error) {
 	if link == "" {
 		link = "https://www.gstatic.com/generate_204"
 	}
+	// Function to run the delay test
+	runTest := func() (delay uint16, err error) {
 	linkURL, err := url.Parse(link)
 	if err != nil {
 		return
@@ -122,6 +125,19 @@ func URLTest(ctx context.Context, link string, detour N.Dialer) (t uint16, err e
 		return
 	}
 	resp.Body.Close()
-	t = uint16(time.Since(start) / time.Millisecond)
+
+	delay = uint16(time.Since(start) / time.Millisecond)
+	return
+	}
+	delay1, err := runTest()
+	if err != nil {
+		return
+	}
+	delay2, err := runTest()
+	if err != nil {
+		return
+	}
+
+	t = (delay1 + delay2) / 5 // ms preferences like (Speedtest by Ookla)
 	return
 }

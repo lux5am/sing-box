@@ -4,6 +4,7 @@ import (
 	std_bufio "bufio"
 	"context"
 	"io"
+	"net/netip"
 
 	"github.com/sagernet/sing-box/adapter"
 	C "github.com/sagernet/sing-box/constant"
@@ -17,6 +18,9 @@ func HTTPHost(_ context.Context, metadata *adapter.InboundContext, reader io.Rea
 		return err
 	}
 	metadata.Protocol = C.ProtocolHTTP
-	metadata.SniffHost = M.ParseSocksaddr(request.Host).AddrString()
+	host := M.ParseSocksaddr(request.Host).AddrString()
+	if _, err = netip.ParseAddr(host); err != nil {
+		metadata.SniffHost = host
+	}
 	return nil
 }

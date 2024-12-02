@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"io"
+	"net/netip"
 
 	"github.com/sagernet/sing-box/adapter"
 	C "github.com/sagernet/sing-box/constant"
@@ -22,7 +23,9 @@ func TLSClientHello(ctx context.Context, metadata *adapter.InboundContext, reade
 	}).HandshakeContext(ctx)
 	if clientHello != nil {
 		metadata.Protocol = C.ProtocolTLS
-		metadata.SniffHost = clientHello.ServerName
+		if _, err = netip.ParseAddr(clientHello.ServerName); err != nil {
+			metadata.SniffHost = clientHello.ServerName
+		}
 		return nil
 	}
 	if errors.Is(err, io.ErrUnexpectedEOF) {

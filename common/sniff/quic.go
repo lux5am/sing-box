@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"io"
 	"os"
+	"net/netip"
 
 	"github.com/sagernet/sing-box/adapter"
 	"github.com/sagernet/sing-box/common/ja3"
@@ -306,7 +307,9 @@ find:
 		metadata.SniffContext = fragments
 		return E.Cause1(ErrNeedMoreData, err)
 	}
-	metadata.SniffHost = fingerprint.ServerName
+	if _, err = netip.ParseAddr(fingerprint.ServerName); err != nil {
+		metadata.SniffHost = fingerprint.ServerName
+	}
 	for metadata.Client == "" {
 		if len(frameTypeList) == 1 {
 			metadata.Client = C.ClientFirefox

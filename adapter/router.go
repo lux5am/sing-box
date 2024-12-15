@@ -29,6 +29,7 @@ type Router interface {
 	RuleSets() []RuleSet
 	Rules() []Rule
 	NeedFindProcess() bool
+	Trackers() []ConnectionTracker
 	AppendTracker(tracker ConnectionTracker)
 	ResetNetwork()
 }

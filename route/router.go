@@ -212,6 +212,10 @@ func (r *Router) Rules() []adapter.Rule {
 	return r.rules
 }
 
+func (r *Router) Trackers() []adapter.ConnectionTracker {
+	return r.trackers
+}
+
 func (r *Router) AppendTracker(tracker adapter.ConnectionTracker) {
 	r.trackers = append(r.trackers, tracker)
 }

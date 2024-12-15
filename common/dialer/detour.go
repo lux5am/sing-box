@@ -6,7 +6,9 @@ import (
 	"sync"
 
 	"github.com/sagernet/sing-box/adapter"
+	C "github.com/sagernet/sing-box/constant"
 	"github.com/sagernet/sing/common"
+	"github.com/sagernet/sing/common/bufio"
 	E "github.com/sagernet/sing/common/exceptions"
 	M "github.com/sagernet/sing/common/metadata"
 	N "github.com/sagernet/sing/common/network"
@@ -17,7 +19,7 @@ type DirectDialer interface {
 }
 
 type DetourDialer struct {
-	providerManager         adapter.OutboundProviderManager
+	router                  adapter.Router
 	detour                  string
 	defaultOutbound         bool
 	disableEmptyDirectCheck bool
@@ -26,17 +28,17 @@ type DetourDialer struct {
 	initErr                 error
 }
 
-func NewDetour(providerManager adapter.OutboundProviderManager, detour string, disableEmptyDirectCheck bool) N.Dialer {
+func NewDetour(router adapter.Router, detour string, disableEmptyDirectCheck bool) N.Dialer {
 	return &DetourDialer{
-		providerManager:         providerManager,
+		router:                  router,
 		detour:                  detour,
 		disableEmptyDirectCheck: disableEmptyDirectCheck,
 	}
 }
 
-func NewDefaultOutboundDetour(providerManager adapter.OutboundProviderManager) N.Dialer {
+func NewDefaultOutboundDetour(router adapter.Router) N.Dialer {
 	return &DetourDialer{
-		providerManager: providerManager,
+		router:          router,
 		defaultOutbound: true,
 	}
 }
@@ -58,13 +60,13 @@ func (d *DetourDialer) init() {
 	var dialer adapter.Outbound
 	if d.detour != "" {
 		var loaded bool
-		dialer, loaded = d.providerManager.OutboundWithProvider(d.detour)
+		dialer, loaded = d.router.ProviderManager().OutboundWithProvider(d.detour)
 		if !loaded {
 			d.initErr = E.New("outbound detour not found: ", d.detour)
 			return
 		}
 	} else {
-		dialer = d.providerManager.Default()
+		dialer = d.router.ProviderManager().Default()
 	}
 	if !d.defaultOutbound && !d.disableEmptyDirectCheck {
 		if directDialer, isDirect := dialer.(DirectDialer); isDirect {
@@ -82,6 +84,24 @@ func (d *DetourDialer) DialContext(ctx context.Context, network string, destinat
 	if err != nil {
 		return nil, err
 	}
+	trackers := d.router.Trackers()
+	if dialer.(adapter.Outbound).Type() != C.TypeDirect && len(trackers) > 0 {
+		conn, err := dialer.DialContext(ctx, network, destination)
+		if err != nil {
+			return nil, err
+		}
+		metadata := adapter.InboundContext{
+			InboundType: C.TypeInner,
+			Network:     network,
+			Outbound:    d.detour,
+			Destination: destination,
+		}
+		var routedConn net.Conn
+		for _, tracker := range trackers {
+			routedConn, err = tracker.RoutedConnection(ctx, conn, metadata, nil, dialer.(adapter.Outbound)), nil
+		}
+		return routedConn, err
+	}
 	return dialer.DialContext(ctx, network, destination)
 }
 
@@ -89,6 +109,24 @@ func (d *DetourDialer) ListenPacket(ctx context.Context, destination M.Socksaddr
 	dialer, err := d.Dialer()
 	if err != nil {
 		return nil, err
+	}
+	trackers := d.router.Trackers()
+	if dialer.(adapter.Outbound).Type() != C.TypeDirect && len(trackers) > 0 {
+		conn, err := dialer.ListenPacket(ctx, destination)
+		if err != nil {
+			return nil, err
+		}
+		metadata := adapter.InboundContext{
+			InboundType: C.TypeInner,
+			Network:     N.NetworkUDP,
+			Outbound:    d.detour,
+			Destination: destination,
+		}
+		var routedPacketConn net.PacketConn
+		for _, tracker := range trackers {
+			routedPacketConn, err = tracker.RoutedPacketConnection(ctx, bufio.NewPacketConn(conn), metadata, nil, dialer.(adapter.Outbound)).(net.PacketConn), nil
+		}
+		return routedPacketConn, err
 	}
 	return dialer.ListenPacket(ctx, destination)
 }

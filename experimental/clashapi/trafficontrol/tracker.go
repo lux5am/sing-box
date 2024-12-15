@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/sagernet/sing-box/adapter"
+	C "github.com/sagernet/sing-box/constant"
 	"github.com/sagernet/sing/common"
 	"github.com/sagernet/sing/common/atomic"
 	"github.com/sagernet/sing/common/bufio"
@@ -68,7 +69,7 @@ func (t TrackerMetadata) MarshalJSON() ([]byte, error) {
 	var rule string
 	if t.Rule != nil {
 		rule = F.ToString(t.Rule, " => ", t.Rule.Action())
-	} else {
+	} else if t.Metadata.InboundType != C.TypeInner {
 		rule = "final"
 	}
 	return json.Marshal(map[string]any{
@@ -136,6 +137,8 @@ func NewTCPTracker(conn net.Conn, manager *Manager, metadata adapter.InboundCont
 	)
 	if matchOutbound != nil {
 		next = matchOutbound.Tag()
+	} else if metadata.InboundType == C.TypeInner && metadata.Outbound != "" {
+		next = metadata.Outbound
 	} else {
 		next = outboundManager.Default().Tag()
 	}
@@ -217,6 +220,8 @@ func NewUDPTracker(conn N.PacketConn, manager *Manager, metadata adapter.Inbound
 	)
 	if matchOutbound != nil {
 		next = matchOutbound.Tag()
+	} else if metadata.InboundType == C.TypeInner && metadata.Outbound != "" {
+		next = metadata.Outbound
 	} else {
 		next = outboundManager.Default().Tag()
 	}

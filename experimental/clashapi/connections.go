@@ -80,7 +80,7 @@ func (c connectionObject) MarshalJSON() ([]byte, error) {
 	var rule string
 	if c.Rule != nil {
 		rule = F.ToString(c.Rule, " => ", c.Rule.Action())
-	} else {
+	} else if c.Metadata.InboundType != C.TypeInner {
 		rule = "final"
 	}
 	chains := c.Chain

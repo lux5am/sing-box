@@ -28,6 +28,7 @@ type Router interface {
 	NeedFindProcess() bool
 	NeedFindNeighbor() bool
 	NeighborResolver() NeighborResolver
+	Trackers() []ConnectionTracker
 	AppendTracker(tracker ConnectionTracker)
 	ResetNetwork()
 }

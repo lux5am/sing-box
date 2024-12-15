@@ -172,7 +172,6 @@ func NewRouter(ctx context.Context, logFactory log.Factory, options option.Route
 		transportTagMap[tag] = true
 	}
 	outboundManager := service.FromContext[adapter.OutboundManager](ctx)
-	providerManager := service.FromContext[adapter.OutboundProviderManager](ctx)
 	for {
 		lastLen := len(dummyTransportMap)
 		for i, server := range dnsOptions.Servers {
@@ -184,7 +183,7 @@ func NewRouter(ctx context.Context, logFactory log.Factory, options option.Route
 			if server.Detour == "" {
 				detour = dialer.NewDefaultOutbound(outboundManager)
 			} else {
-				detour = dialer.NewDetour(providerManager, server.Detour)
+				detour = dialer.NewDetour(router, server.Detour)
 			}
 			var serverProtocol string
 			if len(server.Address) == 0 {
@@ -569,6 +568,10 @@ func (r *Router) NeedWIFIState() bool {
 
 func (r *Router) Rules() []adapter.Rule {
 	return r.rules
+}
+
+func (r *Router) Tracker() adapter.ConnectionTracker {
+	return r.tracker
 }
 
 func (r *Router) SetTracker(tracker adapter.ConnectionTracker) {

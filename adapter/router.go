@@ -28,6 +28,7 @@ type Router interface {
 	RuleSets() []RuleSet
 	NeedWIFIState() bool
 	Rules() []Rule
+	Tracker() ConnectionTracker
 	SetTracker(tracker ConnectionTracker)
 	ResetNetwork()
 }

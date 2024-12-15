@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/sagernet/sing-box/adapter"
+	"github.com/sagernet/sing-box/route"
 	"github.com/sagernet/sing-tun"
 	"github.com/sagernet/sing/common"
 	"github.com/sagernet/sing/common/bufio"
@@ -67,6 +68,9 @@ func (m *Manager) RoutedFlow(ctx context.Context, metadata adapter.InboundContex
 
 func (m *Manager) newTrackerMetadata(metadata adapter.InboundContext, matchedRule adapter.Rule, matchOutbound adapter.Outbound, upload *atomic.Int64, download *atomic.Int64) TrackerMetadata {
 	id, _ := uuid.NewV4()
+	if len(metadata.OutboundChain) == 0 {
+		metadata.OutboundChain, _ = route.ResolveOutbound(matchOutbound, metadata.Network)
+	}
 	chain := common.Map(metadata.OutboundChain, adapter.Outbound.Tag)
 	slices.Reverse(chain)
 	outbound := metadata.OutboundChain[len(metadata.OutboundChain)-1]

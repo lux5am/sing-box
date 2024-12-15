@@ -6,6 +6,8 @@ import (
 	"sync"
 
 	"github.com/sagernet/sing-box/adapter"
+	C "github.com/sagernet/sing-box/constant"
+	"github.com/sagernet/sing/common/bufio"
 	E "github.com/sagernet/sing/common/exceptions"
 	M "github.com/sagernet/sing/common/metadata"
 	N "github.com/sagernet/sing/common/network"
@@ -44,6 +46,23 @@ func (d *DetourDialer) DialContext(ctx context.Context, network string, destinat
 	if err != nil {
 		return nil, err
 	}
+	if dialer.(adapter.Outbound).Type() != C.TypeDirect && d.router.ClashServer() != nil {
+		conn, err := dialer.DialContext(ctx, network, destination)
+		if err != nil {
+			return nil, err
+		}
+		if fqdn := ctx.Value("DialerFqdn"); fqdn != nil {
+			destination.Fqdn = fqdn.(string)
+		}
+		metadata := adapter.InboundContext{
+			InboundType: C.TypeInner,
+			Network: network,
+			Outbound: d.detour,
+			Destination: destination,
+		}
+		trackerConn, _ := d.router.ClashServer().RoutedConnection(ctx, conn, metadata, nil)
+		return trackerConn, nil
+	}
 	return dialer.DialContext(ctx, network, destination)
 }
 
@@ -51,6 +70,23 @@ func (d *DetourDialer) ListenPacket(ctx context.Context, destination M.Socksaddr
 	dialer, err := d.Dialer()
 	if err != nil {
 		return nil, err
+	}
+	if dialer.(adapter.Outbound).Type() != C.TypeDirect && d.router.ClashServer() != nil {
+		conn, err := dialer.ListenPacket(ctx, destination)
+		if err != nil {
+			return nil, err
+		}
+		if fqdn := ctx.Value("DialerFqdn"); fqdn != nil {
+			destination.Fqdn = fqdn.(string)
+		}
+		metadata := adapter.InboundContext{
+			InboundType: C.TypeInner,
+			Network: N.NetworkUDP,
+			Outbound: d.detour,
+			Destination: destination,
+		}
+		trackerConn, _ := d.router.ClashServer().RoutedPacketConnection(ctx, bufio.NewPacketConn(conn), metadata, nil)
+		return trackerConn.(net.PacketConn), nil
 	}
 	return dialer.ListenPacket(ctx, destination)
 }

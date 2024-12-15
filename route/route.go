@@ -147,7 +147,7 @@ func (r *Router) routeConnection(ctx context.Context, conn net.Conn, metadata ad
 	if selectedRule == nil {
 		selectedOutbound = r.outbound.Default()
 	}
-	chain, err := resolveOutbound(selectedOutbound, N.NetworkTCP)
+	chain, err := ResolveOutbound(selectedOutbound, N.NetworkTCP)
 	if err != nil {
 		buf.ReleaseMulti(buffers)
 		return err
@@ -174,7 +174,7 @@ func (r *Router) routeConnection(ctx context.Context, conn net.Conn, metadata ad
 	return nil
 }
 
-func resolveOutbound(outbound adapter.Outbound, network string) ([]adapter.Outbound, error) {
+func ResolveOutbound(outbound adapter.Outbound, network string) ([]adapter.Outbound, error) {
 	chain := []adapter.Outbound{outbound}
 	for {
 		group, isGroup := outbound.(adapter.OutboundGroup)
@@ -315,7 +315,7 @@ func (r *Router) routePacketConnection(ctx context.Context, conn N.PacketConn, m
 	if selectedRule == nil || selectReturn {
 		selectedOutbound = r.outbound.Default()
 	}
-	chain, err := resolveOutbound(selectedOutbound, N.NetworkUDP)
+	chain, err := ResolveOutbound(selectedOutbound, N.NetworkUDP)
 	if err != nil {
 		N.ReleaseMultiPacketBuffer(packetBuffers)
 		return err
@@ -493,7 +493,7 @@ func (r *Router) preMatchFlow(ctx context.Context, metadata *adapter.InboundCont
 			return continueResult
 		}
 	}
-	chain, err := resolveOutbound(outbound, metadata.Network)
+	chain, err := ResolveOutbound(outbound, metadata.Network)
 	if err != nil {
 		return continueResult
 	}

@@ -41,11 +41,11 @@ func NewWithOptions(options Options) (N.Dialer, error) {
 		err    error
 	)
 	if dialOptions.Detour != "" {
-		providerManager := service.FromContext[adapter.OutboundProviderManager](options.Context)
-		if providerManager == nil {
+		router := service.FromContext[adapter.Router](options.Context)
+		if router == nil {
 			return nil, E.New("missing provider manager")
 		}
-		dialer = NewDetour(providerManager, dialOptions.Detour)
+		dialer = NewDetour(router, dialOptions.Detour)
 	} else {
 		dialer, err = NewDefault(options.Context, dialOptions)
 		if err != nil {

@@ -6,10 +6,12 @@ import (
 	"sync"
 
 	"github.com/sagernet/sing-box/adapter"
+	C "github.com/sagernet/sing-box/constant"
 	"github.com/sagernet/sing/common"
 	E "github.com/sagernet/sing/common/exceptions"
 	M "github.com/sagernet/sing/common/metadata"
 	N "github.com/sagernet/sing/common/network"
+	"github.com/sagernet/sing/service"
 )
 
 type DirectDialer interface {
@@ -81,6 +83,28 @@ func (d *DetourDialer) DialContext(ctx context.Context, network string, destinat
 	dialer, err := d.Dialer()
 	if err != nil {
 		return nil, err
+	}
+	if dialer.(adapter.Outbound).Type() != C.TypeDirect {
+		if router := service.FromContext[adapter.Router](ctx); router != nil {
+			trackers := router.Trackers()
+			if len(trackers) > 0 {
+				conn, err := dialer.DialContext(ctx, network, destination)
+				if err != nil {
+					return nil, err
+				}
+				metadata := adapter.InboundContext{
+					InboundType: C.TypeInner,
+					Network:     network,
+					Outbound:    d.detour,
+					Destination: destination,
+				}
+				var routedConn net.Conn
+				for _, tracker := range trackers {
+					routedConn, err = tracker.RoutedConnection(ctx, conn, metadata, nil, dialer.(adapter.Outbound)), nil
+				}
+				return routedConn, err
+			}
+		}
 	}
 	return dialer.DialContext(ctx, network, destination)
 }

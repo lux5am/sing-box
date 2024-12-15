@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/sagernet/sing-box/adapter"
+	C "github.com/sagernet/sing-box/constant"
 	"github.com/sagernet/sing/common"
 	"github.com/sagernet/sing/common/atomic"
 	"github.com/sagernet/sing/common/bufio"
@@ -68,7 +69,7 @@ func (t TrackerMetadata) MarshalJSON() ([]byte, error) {
 	var rule string
 	if t.Rule != nil {
 		rule = F.ToString(t.Rule, " => ", t.Rule.Outbound())
-	} else {
+	} else if t.Metadata.InboundType != C.TypeInner {
 		rule = "final"
 	}
 	return json.Marshal(map[string]any{
@@ -140,7 +141,9 @@ func NewTCPTracker(conn net.Conn, manager *Manager, metadata adapter.InboundCont
 		outboundType string
 	)
 	if rule == nil {
-		if defaultOutbound, err := router.DefaultOutbound(N.NetworkTCP); err == nil {
+		if metadata.InboundType == C.TypeInner && metadata.Outbound != "" {
+			next = metadata.Outbound
+		} else if defaultOutbound, err := router.DefaultOutbound(N.NetworkTCP); err == nil {
 			next = defaultOutbound.Tag()
 		}
 	} else {
@@ -227,7 +230,9 @@ func NewUDPTracker(conn N.PacketConn, manager *Manager, metadata adapter.Inbound
 		outboundType string
 	)
 	if rule == nil {
-		if defaultOutbound, err := router.DefaultOutbound(N.NetworkUDP); err == nil {
+		if metadata.InboundType == C.TypeInner && metadata.Outbound != "" {
+			next = metadata.Outbound
+		} else if defaultOutbound, err := router.DefaultOutbound(N.NetworkUDP); err == nil {
 			next = defaultOutbound.Tag()
 		}
 	} else {

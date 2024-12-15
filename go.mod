@@ -58,7 +58,7 @@ require (
 )
 
 //replace github.com/sagernet/sing => ../sing
-replace github.com/sagernet/sing-dns v0.4.0-beta.1 => github.com/lux5am/sing-dns v0.2.1-0.20241212001340-10fe9b53605b
+replace github.com/sagernet/sing-dns v0.4.0-beta.1 => github.com/lux5am/sing-dns v0.2.1-0.20241215133332-b389d8c029ef
 
 require (
 	github.com/ajg/form v1.5.1 // indirect

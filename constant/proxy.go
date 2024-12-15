@@ -1,6 +1,7 @@
 package constant
 
 const (
+	TypeInner        = "inner"
 	TypeTun          = "tun"
 	TypeRedirect     = "redirect"
 	TypeTProxy       = "tproxy"
@@ -34,6 +35,8 @@ const (
 
 func ProxyDisplayName(proxyType string) string {
 	switch proxyType {
+	case TypeInner:
+		return "Inner"
 	case TypeTun:
 		return "TUN"
 	case TypeRedirect:

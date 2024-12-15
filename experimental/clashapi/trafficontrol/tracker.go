@@ -63,7 +63,7 @@ func (t TrackerMetadata) MarshalJSON() ([]byte, error) {
 	var rule string
 	if t.Rule != nil {
 		rule = F.ToString(t.Rule, " => ", t.Rule.Action())
-	} else {
+	} else if t.Metadata.InboundType != C.TypeInner {
 		rule = "final"
 	}
 	chains := t.Chain

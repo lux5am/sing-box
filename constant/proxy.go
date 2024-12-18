@@ -29,6 +29,7 @@ const (
 const (
 	TypeSelector = "selector"
 	TypeURLTest  = "urltest"
+	TypePass     = "pass"
 )
 
 func ProxyDisplayName(proxyType string) string {
@@ -83,6 +84,8 @@ func ProxyDisplayName(proxyType string) string {
 		return "URLTest"
 	case TypeInner:
 		return "Inner"
+	case TypePass:
+		return "Pass"
 	default:
 		return "Unknown"
 	}

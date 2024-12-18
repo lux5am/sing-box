@@ -187,7 +187,7 @@ func (p *myProviderAdapter) createOutbounds(ctx context.Context, router adapter.
 		otype := outbound.Type
 		tag := outbound.Tag
 		switch otype {
-		case C.TypeDirect, C.TypeBlock, C.TypeDNS, C.TypeSelector, C.TypeURLTest:
+		case C.TypeDirect, C.TypeBlock, C.TypeDNS, C.TypeSelector, C.TypeURLTest, C.TypePass:
 			continue
 		default:
 			out, err := p.router.OutboundManager().CreateOutbound(

@@ -174,4 +174,5 @@ type URLTestGroup interface {
 
 type SelectorGroup interface {
 	OutboundGroup
+	Selected() Outbound
 }

@@ -6,6 +6,7 @@ const (
 	TypeTProxy             = "tproxy"
 	TypeDirect             = "direct"
 	TypeBlock              = "block"
+	TypePass               = "pass"
 	TypeDNS                = "dns"
 	TypeSOCKS              = "socks"
 	TypeHTTP               = "http"
@@ -56,6 +57,8 @@ func ProxyDisplayName(proxyType string) string {
 		return "Direct"
 	case TypeBlock:
 		return "Block"
+	case TypePass:
+		return "Pass"
 	case TypeDNS:
 		return "DNS"
 	case TypeSOCKS:

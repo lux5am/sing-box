@@ -218,6 +218,10 @@ func (s *Selector) References() []string {
 	return []string{s.Now()}
 }
 
+func (s *Selector) Selected() adapter.Outbound {
+	return s.selected.Load()
+}
+
 func (s *Selector) SelectOutbound(tag string) bool {
 	detour, loaded := s.outboundByTag[tag]
 	if !loaded {

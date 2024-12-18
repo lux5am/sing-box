@@ -646,6 +646,14 @@ match:
 		var routeOptions *R.RuleActionRouteOptions
 		switch action := currentRule.Action().(type) {
 		case *R.RuleActionRoute:
+			if selectedOutbound, loaded := r.outbound.Outbound(action.Outbound); loaded {
+				if selectedOutbound.Type() == C.TypeSelector {
+					selectedOutbound = selectedOutbound.(adapter.SelectorGroup).Selected(N.NetworkTCP)
+				}
+				if selectedOutbound != nil && selectedOutbound.Type() == C.TypePass {
+					continue
+				}
+			}
 			routeOptions = &action.RuleActionRouteOptions
 		case *R.RuleActionRouteOptions:
 			routeOptions = action

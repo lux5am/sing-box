@@ -40,7 +40,7 @@ func (a *Adapter) Tag() string {
 
 func (a *Adapter) Port() int {
 	switch a.outboundType {
-	case C.TypeDirect, C.TypeBlock, C.TypeDNS, C.TypeTor, C.TypeSelector, C.TypeURLTest:
+	case C.TypeDirect, C.TypeBlock, C.TypeDNS, C.TypeTor, C.TypeSelector, C.TypeURLTest, C.TypePass:
 		return 65536
 	default:
 		return int(a.port)

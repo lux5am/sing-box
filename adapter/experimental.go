@@ -120,6 +120,7 @@ type URLTestGroup interface {
 
 type SelectorGroup interface {
 	OutboundGroup
+	Selected() Outbound
 	UpdateSelected(tag string) bool
 }
 

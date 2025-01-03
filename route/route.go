@@ -167,6 +167,9 @@ func (r *Router) routeConnection(ctx context.Context, conn net.Conn, metadata ad
 		metadata.RouteRule = selectedRule.String()
 	}
 	metadata.RouteOutbound = selectedOutbound.Tag()
+	if len(r.trackers) > 0 {
+		metadata.InitExtended()
+	}
 	for _, tracker := range r.trackers {
 		conn = tracker.RoutedConnection(ctx, conn, metadata, selectedRule, selectedOutbound)
 	}
@@ -299,6 +302,9 @@ func (r *Router) routePacketConnection(ctx context.Context, conn N.PacketConn, m
 		metadata.RouteRule = selectedRule.String()
 	}
 	metadata.RouteOutbound = selectedOutbound.Tag()
+	if len(r.trackers) > 0 {
+		metadata.InitExtended()
+	}
 	for _, tracker := range r.trackers {
 		conn = tracker.RoutedPacketConnection(ctx, conn, metadata, selectedRule, selectedOutbound)
 	}

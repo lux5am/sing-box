@@ -103,6 +103,8 @@ func (c connectionObject) MarshalJSON() ([]byte, error) {
 			"sniffHost":       c.Metadata.SniffHost,
 			"dnsMode":         "normal",
 			"processPath":     processPath,
+
+			"remoteDestination": c.Metadata.GetRemoteDst(),
 		},
 		"upload":      c.Upload.Load(),
 		"download":    c.Download.Load(),

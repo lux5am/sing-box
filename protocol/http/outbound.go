@@ -27,6 +27,7 @@ type Outbound struct {
 	outbound.Adapter
 	logger logger.ContextLogger
 	client *sHTTP.Client
+	serverAddr M.Socksaddr
 }
 
 func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextLogger, tag string, options option.HTTPOutboundOptions) (adapter.Outbound, error) {
@@ -38,17 +39,19 @@ func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextL
 	if err != nil {
 		return nil, err
 	}
+	serverAddr := options.ServerOptions.Build()
 	outbound := &Outbound{
 		Adapter: outbound.NewAdapterWithDialerOptions(C.TypeHTTP, tag, []string{N.NetworkTCP}, options.DialerOptions),
 		logger:  logger,
 		client: sHTTP.NewClient(sHTTP.Options{
 			Dialer:   detour,
-			Server:   options.ServerOptions.Build(),
+			Server:   serverAddr,
 			Username: options.Username,
 			Password: options.Password,
 			Path:     options.Path,
 			Headers:  options.Headers.Build(),
 		}),
+		serverAddr: serverAddr,
 	}
 	outbound.SetPort(options.ServerPort)
 	return outbound, nil
@@ -58,6 +61,7 @@ func (h *Outbound) DialContext(ctx context.Context, network string, destination 
 	ctx, metadata := adapter.ExtendContext(ctx)
 	metadata.Outbound = h.Tag()
 	metadata.Destination = destination
+	metadata.SetRemoteDst(h.serverAddr)
 	h.logger.InfoContext(ctx, "outbound connection to ", destination)
 	return h.client.DialContext(ctx, network, destination)
 }

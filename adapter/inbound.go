@@ -104,6 +104,7 @@ type InboundContext struct {
 
 type InboundContextExtended struct {
 	RealOutbound string
+	RemoteDst    M.Socksaddr
 }
 
 func (c *InboundContext) InitExtended() {
@@ -121,6 +122,22 @@ func (c *InboundContext) SetRealOutbound(tag string) {
 func (c *InboundContext) GetRealOutbound() string {
 	if c.Extended != nil {
 		return c.Extended.RealOutbound
+	} else {
+		return ""
+	}
+}
+
+func (c *InboundContext) SetRemoteDst(dst M.Socksaddr) {
+	if c.Extended != nil {
+		c.Extended.RemoteDst.Addr = dst.Addr
+		c.Extended.RemoteDst.Port = dst.Port
+		c.Extended.RemoteDst.Fqdn = dst.Fqdn
+	}
+}
+
+func (c *InboundContext) GetRemoteDst() string {
+	if c.Extended != nil {
+		return c.Extended.RemoteDst.AddrString()
 	} else {
 		return ""
 	}

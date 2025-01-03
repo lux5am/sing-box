@@ -130,6 +130,7 @@ func (r *Router) routeConnection(ctx context.Context, conn net.Conn, metadata ad
 		conn = bufio.NewCachedConn(conn, buffer)
 	}
 	if r.tracker != nil {
+		metadata.InitRemoteDst()
 		conn = r.tracker.RoutedConnection(ctx, conn, metadata, selectedRule, selectedOutbound)
 	}
 	if outboundHandler, isHandler := selectedOutbound.(adapter.ConnectionHandlerEx); isHandler {
@@ -241,6 +242,7 @@ func (r *Router) routePacketConnection(ctx context.Context, conn N.PacketConn, m
 		N.PutPacketBuffer(buffer)
 	}
 	if r.tracker != nil {
+		metadata.InitRemoteDst()
 		conn = r.tracker.RoutedPacketConnection(ctx, conn, metadata, selectedRule, selectedOutbound)
 	}
 	if metadata.FakeIP {

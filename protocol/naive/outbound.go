@@ -39,6 +39,7 @@ type Outbound struct {
 	logger    logger.ContextLogger
 	client    *cronet.NaiveClient
 	uotClient *uot.Client
+	serverAddr M.Socksaddr
 }
 
 func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextLogger, tag string, options option.NaiveOutboundOptions) (adapter.Outbound, error) {
@@ -216,6 +217,7 @@ func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextL
 		logger:    logger,
 		client:    client,
 		uotClient: uotClient,
+		serverAddr: serverAddress,
 	}, nil
 }
 
@@ -232,6 +234,9 @@ func (h *Outbound) Start(stage adapter.StartStage) error {
 }
 
 func (h *Outbound) DialContext(ctx context.Context, network string, destination M.Socksaddr) (net.Conn, error) {
+	if metadata := adapter.ContextFrom(ctx); metadata != nil {
+		metadata.SetRemoteDst(h.serverAddr)
+	}
 	switch N.NetworkName(network) {
 	case N.NetworkTCP:
 		h.logger.InfoContext(ctx, "outbound connection to ", destination)

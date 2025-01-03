@@ -36,6 +36,7 @@ type Outbound struct {
 	logger    logger.ContextLogger
 	client    *tuic.Client
 	udpStream bool
+	serverAddr M.Socksaddr
 }
 
 func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextLogger, tag string, options option.TUICOutboundOptions) (adapter.Outbound, error) {
@@ -64,10 +65,11 @@ func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextL
 	if err != nil {
 		return nil, err
 	}
+	serverAddr := options.ServerOptions.Build()
 	client, err := tuic.NewClient(tuic.ClientOptions{
 		Context:           ctx,
 		Dialer:            outboundDialer,
-		ServerAddress:     options.ServerOptions.Build(),
+		ServerAddress:     serverAddr,
 		TLSConfig:         tlsConfig,
 		UUID:              userUUID,
 		Password:          options.Password,
@@ -84,12 +86,16 @@ func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextL
 		logger:    logger,
 		client:    client,
 		udpStream: options.UDPOverStream,
+		serverAddr: serverAddr,
 	}
 	outbound.SetPort(options.ServerPort)
 	return outbound, nil
 }
 
 func (h *Outbound) DialContext(ctx context.Context, network string, destination M.Socksaddr) (net.Conn, error) {
+	if metadata := adapter.ContextFrom(ctx); metadata != nil {
+		metadata.SetRemoteDst(h.serverAddr)
+	}
 	switch N.NetworkName(network) {
 	case N.NetworkTCP:
 		h.logger.InfoContext(ctx, "outbound connection to ", destination)

@@ -272,6 +272,9 @@ func (s *Outbound) Start(stage adapter.StartStage, scope *adapter.Scope) error {
 }
 
 func (s *Outbound) DialContext(ctx context.Context, network string, destination M.Socksaddr) (net.Conn, error) {
+	if metadata := adapter.ContextFrom(ctx); metadata != nil {
+		metadata.SetRemoteDst(s.serverAddr)
+	}
 	client, err := s.connect(ctx)
 	if err != nil {
 		return nil, err

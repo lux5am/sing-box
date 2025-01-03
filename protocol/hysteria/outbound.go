@@ -36,6 +36,7 @@ type Outbound struct {
 	outbound.Adapter
 	logger logger.ContextLogger
 	client *hysteria.Client
+	serverAddr M.Socksaddr
 }
 
 func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextLogger, tag string, options option.HysteriaOutboundOptions) (adapter.Outbound, error) {
@@ -69,11 +70,12 @@ func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextL
 	} else {
 		receiveBps = uint64(options.DownMbps) * hysteria.MbpsToBps
 	}
+	serverAddr := options.ServerOptions.Build()
 	client, err := hysteria.NewClient(hysteria.ClientOptions{
 		Context:             ctx,
 		Dialer:              outboundDialer,
 		Logger:              logger,
-		ServerAddress:       options.ServerOptions.Build(),
+		ServerAddress:       serverAddr,
 		ServerPorts:         options.ServerPorts,
 		HopInterval:         time.Duration(options.HopInterval),
 		SendBPS:             sendBps,
@@ -93,12 +95,16 @@ func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextL
 		Adapter: outbound.NewAdapterWithDialerOptions(C.TypeHysteria, tag, networkList, options.DialerOptions),
 		logger:  logger,
 		client:  client,
+		serverAddr: serverAddr,
 	}
 	outbound.SetPort(options.ServerPort)
 	return outbound, nil
 }
 
 func (h *Outbound) DialContext(ctx context.Context, network string, destination M.Socksaddr) (net.Conn, error) {
+	if metadata := adapter.ContextFrom(ctx); metadata != nil {
+		metadata.SetRemoteDst(h.serverAddr)
+	}
 	switch N.NetworkName(network) {
 	case N.NetworkTCP:
 		h.logger.InfoContext(ctx, "outbound connection to ", destination)

@@ -242,6 +242,9 @@ func (d *DefaultDialer) DialContext(ctx context.Context, network string, address
 	} else if address.IsFqdn() {
 		return nil, E.New("domain not resolved")
 	}
+	if metadata := adapter.ContextFrom(ctx); metadata != nil {
+		metadata.SetRemoteDst(address)
+	}
 	if d.networkStrategy == nil {
 		return d.trackConn(listener.ListenNetworkNamespace[net.Conn](d.netns, func() (net.Conn, error) {
 			switch N.NetworkName(network) {
@@ -312,6 +315,9 @@ func (d *DefaultDialer) DialParallelInterface(ctx context.Context, network strin
 }
 
 func (d *DefaultDialer) ListenPacket(ctx context.Context, destination M.Socksaddr) (net.PacketConn, error) {
+	if metadata := adapter.ContextFrom(ctx); metadata != nil {
+		metadata.SetRemoteDst(destination)
+	}
 	if d.networkStrategy == nil {
 		return d.trackPacketConn(listener.ListenNetworkNamespace[net.PacketConn](d.netns, func() (net.PacketConn, error) {
 			if destination.IsIPv6() {

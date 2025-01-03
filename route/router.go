@@ -1029,6 +1029,7 @@ func (r *Router) RouteConnection(ctx context.Context, conn net.Conn, metadata ad
 		return E.New("missing supported outbound, closing connection")
 	}
 	if r.clashServer != nil {
+		metadata.InitRemoteDst()
 		trackerConn, tracker := r.clashServer.RoutedConnection(ctx, conn, metadata, matchedRule)
 		defer tracker.Leave()
 		conn = trackerConn
@@ -1213,6 +1214,7 @@ func (r *Router) RoutePacketConnection(ctx context.Context, conn N.PacketConn, m
 		return E.New("missing supported outbound, closing packet connection")
 	}
 	if r.clashServer != nil {
+		metadata.InitRemoteDst()
 		trackerConn, tracker := r.clashServer.RoutedPacketConnection(ctx, conn, metadata, matchedRule)
 		defer tracker.Leave()
 		conn = trackerConn

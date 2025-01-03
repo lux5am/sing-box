@@ -62,6 +62,9 @@ func (d *DetourDialer) DialContext(ctx context.Context, network string, destinat
 			Outbound: d.detour,
 			Destination: destination,
 		}
+		if meta := adapter.ContextFrom(ctx); meta != nil {
+			metadata.RemoteDst = meta.RemoteDst
+		}
 		return d.router.Tracker().RoutedConnection(ctx, conn, metadata, nil, dialer.(adapter.Outbound)), nil
 	}
 	return dialer.DialContext(ctx, network, destination)
@@ -82,6 +85,9 @@ func (d *DetourDialer) ListenPacket(ctx context.Context, destination M.Socksaddr
 			Network: N.NetworkUDP,
 			Outbound: d.detour,
 			Destination: destination,
+		}
+		if meta := adapter.ContextFrom(ctx); meta != nil {
+			metadata.RemoteDst = meta.RemoteDst
 		}
 		return d.router.Tracker().RoutedPacketConnection(ctx, bufio.NewPacketConn(conn), metadata, nil, dialer.(adapter.Outbound)).(net.PacketConn), nil
 	}

@@ -51,6 +51,8 @@ type InboundContext struct {
 	User        string
 	Outbound    string
 
+	RemoteDst   *M.Socksaddr
+
 	// sniffer
 
 	Protocol     string
@@ -110,9 +112,32 @@ func (c *InboundContext) ResetRuleCache() {
 	c.DidMatch = false
 }
 
+func (c *InboundContext) InitRemoteDst() {
+	if c.RemoteDst == nil {
+		c.RemoteDst = new(M.Socksaddr)
+	}
+}
+
+func (c *InboundContext) SetRemoteDst(dst M.Socksaddr) {
+	if c.RemoteDst != nil {
+		c.RemoteDst.Addr = dst.Addr
+		c.RemoteDst.Port = dst.Port
+		c.RemoteDst.Fqdn = dst.Fqdn
+	}
+}
+
+func (c *InboundContext) GetRemoteDst() string {
+	if c.RemoteDst != nil {
+		return c.RemoteDst.AddrString()
+	} else {
+		return ""
+	}
+}
+
 type inboundContextKey struct{}
 
 func WithContext(ctx context.Context, inboundContext *InboundContext) context.Context {
+	inboundContext.InitRemoteDst()
 	return context.WithValue(ctx, (*inboundContextKey)(nil), inboundContext)
 }
 

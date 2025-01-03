@@ -22,6 +22,7 @@ var _ adapter.Outbound = (*ShadowTLS)(nil)
 type ShadowTLS struct {
 	myOutboundAdapter
 	client *shadowtls.Client
+	serverAddr M.Socksaddr
 }
 
 func NewShadowTLS(ctx context.Context, router adapter.Router, logger log.ContextLogger, tag string, options option.ShadowTLSOutboundOptions) (*ShadowTLS, error) {
@@ -77,10 +78,11 @@ func NewShadowTLS(ctx context.Context, router adapter.Router, logger log.Context
 	if err != nil {
 		return nil, err
 	}
+	outbound.serverAddr = options.ServerOptions.Build()
 	client, err := shadowtls.NewClient(shadowtls.ClientConfig{
 		Version:      options.Version,
 		Password:     options.Password,
-		Server:       options.ServerOptions.Build(),
+		Server:       outbound.serverAddr,
 		Dialer:       outboundDialer,
 		TLSHandshake: tlsHandshakeFunc,
 		Logger:       logger,
@@ -96,6 +98,7 @@ func (h *ShadowTLS) DialContext(ctx context.Context, network string, destination
 	ctx, metadata := adapter.ExtendContext(ctx)
 	metadata.Outbound = h.tag
 	metadata.Destination = destination
+	metadata.SetRemoteDst(h.serverAddr)
 	switch N.NetworkName(network) {
 	case N.NetworkTCP:
 		return h.client.DialContext(ctx)

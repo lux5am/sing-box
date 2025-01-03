@@ -30,6 +30,7 @@ var (
 type Hysteria2 struct {
 	myOutboundAdapter
 	client *hysteria2.Client
+	serverAddr M.Socksaddr
 }
 
 func NewHysteria2(ctx context.Context, router adapter.Router, logger log.ContextLogger, tag string, options option.Hysteria2OutboundOptions) (*Hysteria2, error) {
@@ -58,12 +59,13 @@ func NewHysteria2(ctx context.Context, router adapter.Router, logger log.Context
 		return nil, err
 	}
 	networkList := options.Network.Build()
+	serverAddr := options.ServerOptions.Build()
 	client, err := hysteria2.NewClient(hysteria2.ClientOptions{
 		Context:            ctx,
 		Dialer:             outboundDialer,
 		Logger:             logger,
 		BrutalDebug:        options.BrutalDebug,
-		ServerAddress:      options.ServerOptions.Build(),
+		ServerAddress:      serverAddr,
 		SendBPS:            uint64(options.UpMbps * hysteria.MbpsToBps),
 		ReceiveBPS:         uint64(options.DownMbps * hysteria.MbpsToBps),
 		SalamanderPassword: salamanderPassword,
@@ -85,10 +87,14 @@ func NewHysteria2(ctx context.Context, router adapter.Router, logger log.Context
 			dependencies: withDialerDependency(options.DialerOptions),
 		},
 		client: client,
+		serverAddr: serverAddr,
 	}, nil
 }
 
 func (h *Hysteria2) DialContext(ctx context.Context, network string, destination M.Socksaddr) (net.Conn, error) {
+	if metadata := adapter.ContextFrom(ctx); metadata != nil {
+		metadata.SetRemoteDst(h.serverAddr)
+	}
 	switch N.NetworkName(network) {
 	case N.NetworkTCP:
 		h.logger.InfoContext(ctx, "outbound connection to ", destination)

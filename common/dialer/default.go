@@ -153,6 +153,9 @@ func (d *DefaultDialer) DialContext(ctx context.Context, network string, address
 	if !address.IsValid() {
 		return nil, E.New("invalid address")
 	}
+	if metadata := adapter.ContextFrom(ctx); metadata != nil {
+		metadata.SetRemoteDst(address)
+	}
 	switch N.NetworkName(network) {
 	case N.NetworkUDP:
 		if !address.IsIPv6() {
@@ -169,6 +172,9 @@ func (d *DefaultDialer) DialContext(ctx context.Context, network string, address
 }
 
 func (d *DefaultDialer) ListenPacket(ctx context.Context, destination M.Socksaddr) (net.PacketConn, error) {
+	if metadata := adapter.ContextFrom(ctx); metadata != nil {
+		metadata.SetRemoteDst(destination)
+	}
 	if destination.IsIPv6() {
 		return trackPacketConn(d.udpListener.ListenPacket(ctx, N.NetworkUDP, d.udpAddr6))
 	} else if destination.IsIPv4() && !destination.Addr.IsUnspecified() {

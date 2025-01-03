@@ -107,6 +107,7 @@ func (h *ShadowsocksR) DialContext(ctx context.Context, network string, destinat
 	ctx, metadata := adapter.ExtendContext(ctx)
 	metadata.Outbound = h.tag
 	metadata.Destination = destination
+	metadata.SetRemoteDst(h.serverAddr)
 	switch network {
 	case N.NetworkTCP:
 		h.logger.InfoContext(ctx, "outbound connection to ", destination)

@@ -83,6 +83,7 @@ func (h *Shadowsocks) DialContext(ctx context.Context, network string, destinati
 	ctx, metadata := adapter.ExtendContext(ctx)
 	metadata.Outbound = h.tag
 	metadata.Destination = destination
+	metadata.SetRemoteDst(h.serverAddr)
 	if h.multiplexDialer == nil {
 		switch N.NetworkName(network) {
 		case N.NetworkTCP:

@@ -85,6 +85,7 @@ func (t TrackerMetadata) MarshalJSON() ([]byte, error) {
 			"sniffHost":       t.Metadata.SniffHost,
 			"dnsMode":         "normal",
 			"processPath":     processPath,
+			"remoteDestination": t.Metadata.GetRemoteDst(),
 		},
 		"upload":      t.Upload.Load(),
 		"download":    t.Download.Load(),

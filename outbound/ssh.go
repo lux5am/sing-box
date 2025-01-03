@@ -190,6 +190,9 @@ func (s *SSH) Close() error {
 }
 
 func (s *SSH) DialContext(ctx context.Context, network string, destination M.Socksaddr) (net.Conn, error) {
+	if metadata := adapter.ContextFrom(ctx); metadata != nil {
+		metadata.SetRemoteDst(s.serverAddr)
+	}
 	client, err := s.connect()
 	if err != nil {
 		return nil, err

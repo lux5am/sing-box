@@ -22,6 +22,7 @@ var _ adapter.Outbound = (*HTTP)(nil)
 type HTTP struct {
 	myOutboundAdapter
 	client *sHTTP.Client
+	serverAddr M.Socksaddr
 }
 
 func NewHTTP(ctx context.Context, router adapter.Router, logger log.ContextLogger, tag string, options option.HTTPOutboundOptions) (*HTTP, error) {
@@ -33,6 +34,7 @@ func NewHTTP(ctx context.Context, router adapter.Router, logger log.ContextLogge
 	if err != nil {
 		return nil, err
 	}
+	serverAddr := options.ServerOptions.Build()
 	return &HTTP{
 		myOutboundAdapter{
 			protocol:     C.TypeHTTP,
@@ -45,12 +47,13 @@ func NewHTTP(ctx context.Context, router adapter.Router, logger log.ContextLogge
 		},
 		sHTTP.NewClient(sHTTP.Options{
 			Dialer:   detour,
-			Server:   options.ServerOptions.Build(),
+			Server:   serverAddr,
 			Username: options.Username,
 			Password: options.Password,
 			Path:     options.Path,
 			Headers:  options.Headers.Build(),
 		}),
+		serverAddr,
 	}, nil
 }
 
@@ -58,6 +61,7 @@ func (h *HTTP) DialContext(ctx context.Context, network string, destination M.So
 	ctx, metadata := adapter.ExtendContext(ctx)
 	metadata.Outbound = h.tag
 	metadata.Destination = destination
+	metadata.SetRemoteDst(h.serverAddr)
 	h.logger.InfoContext(ctx, "outbound connection to ", destination)
 	return h.client.DialContext(ctx, network, destination)
 }

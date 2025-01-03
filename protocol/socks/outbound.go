@@ -33,6 +33,7 @@ type Outbound struct {
 	client    *socks.Client
 	resolve   bool
 	uotClient *uot.Client
+	serverAddr M.Socksaddr
 }
 
 func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextLogger, tag string, options option.SOCKSOutboundOptions) (adapter.Outbound, error) {
@@ -50,7 +51,8 @@ func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextL
 	if err != nil {
 		return nil, err
 	}
-	client := socks.NewClient(outboundDialer, options.ServerOptions.Build(), version, options.Username, options.Password)
+	serverAddr := options.ServerOptions.Build()
+	client := socks.NewClient(outboundDialer, serverAddr, version, options.Username, options.Password)
 	client.SetHandshakeTimeout(C.TCPTimeout)
 	outbound := &Outbound{
 		Adapter:   outbound.NewAdapterWithDialerOptions(C.TypeSOCKS, tag, options.Network.Build(), options.DialerOptions),
@@ -59,6 +61,7 @@ func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextL
 		client:    client,
 		resolve:   version == socks.Version4,
 	}
+	outbound.serverAddr = serverAddr
 	outbound.SetPort(options.ServerPort)
 	uotOptions := common.PtrValueOrDefault(options.UDPOverTCP)
 	if uotOptions.Enabled {
@@ -74,6 +77,7 @@ func (h *Outbound) DialContext(ctx context.Context, network string, destination 
 	ctx, metadata := adapter.ExtendContext(ctx)
 	metadata.Outbound = h.Tag()
 	metadata.Destination = destination
+	metadata.SetRemoteDst(h.serverAddr)
 	switch N.NetworkName(network) {
 	case N.NetworkTCP:
 		h.logger.InfoContext(ctx, "outbound connection to ", destination)

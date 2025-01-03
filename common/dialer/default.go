@@ -293,6 +293,9 @@ func (d *DefaultDialer) DialContext(ctx context.Context, network string, address
 	} else if address.IsDomain() {
 		return nil, E.New("domain not resolved")
 	}
+	if metadata := adapter.ContextFrom(ctx); metadata != nil {
+		metadata.SetRemoteDst(address)
+	}
 	if d.networkStrategy == nil || !d.canUseNetworkStrategy.Load() {
 		if d.netns == "" && address.Addr.Zone() == "" && isLinkScoped(address.Addr) {
 			if d.bindInterface != "" {
@@ -389,6 +392,9 @@ func (d *DefaultDialer) DialParallelNetwork(ctx context.Context, network string,
 }
 
 func (d *DefaultDialer) ListenPacket(ctx context.Context, destination M.Socksaddr) (net.PacketConn, error) {
+	if metadata := adapter.ContextFrom(ctx); metadata != nil {
+		metadata.SetRemoteDst(destination)
+	}
 	if d.networkStrategy == nil || !d.canUseNetworkStrategy.Load() {
 		packetConn, err := listener.ListenNetworkNamespace[net.PacketConn](ctx, d.netns, func() (net.PacketConn, error) {
 			listenConfig := d.udpListener

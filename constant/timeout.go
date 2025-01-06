@@ -3,6 +3,7 @@ package constant
 import "time"
 
 var (
+	UnifiedDelay         = false
 	DisableTCPKeepAlive  = false
 	TCPKeepAliveInitial  = 10 * time.Minute
 	TCPKeepAliveInterval = 75 * time.Second

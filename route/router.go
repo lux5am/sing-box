@@ -72,6 +72,7 @@ type Router struct {
 }
 
 func NewRouter(ctx context.Context, logFactory log.Factory, options option.RouteOptions, dnsOptions option.DNSOptions) (*Router, error) {
+	C.UnifiedDelay = options.UnifiedDelay
 	C.DisableTCPKeepAlive = options.DisableTCPKeepAlive
 	if options.TCPKeepAliveInitial > 0 {
 		C.TCPKeepAliveInitial = time.Duration(options.TCPKeepAliveInitial)

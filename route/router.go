@@ -1277,6 +1277,12 @@ func (r *Router) match0(ctx context.Context, metadata *adapter.InboundContext, d
 			detour := rule.Outbound()
 			r.logger.DebugContext(ctx, "match[", i, "] ", rule.String(), " => ", detour)
 			if outbound, loaded := r.Outbound(detour); loaded {
+				if outbound.Type() == C.TypeSelector {
+					outbound = outbound.(adapter.SelectorGroup).Selected()
+				}
+				if outbound.Type() == C.TypePass {
+					continue
+				}
 				return rule, outbound
 			}
 			r.logger.ErrorContext(ctx, "outbound not found: ", detour)

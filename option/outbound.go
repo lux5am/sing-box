@@ -36,7 +36,7 @@ func (h *Outbound) RawOptions() (any, error) {
 	switch h.Type {
 	case C.TypeDirect:
 		rawOptionsPtr = &h.DirectOptions
-	case C.TypeBlock, C.TypeDNS:
+	case C.TypeBlock, C.TypeDNS, C.TypePass:
 		rawOptionsPtr = nil
 	case C.TypeSOCKS:
 		rawOptionsPtr = &h.SocksOptions

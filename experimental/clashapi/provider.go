@@ -33,6 +33,7 @@ func providerInfo(server *Server, provider adapter.OutboundProvider) *render.M {
 		"type":             "Proxy",
 		"vehicleType":      strings.ToUpper(provider.Type()),
 		"subscriptionInfo": provider.SubInfo(),
+		"testUrl":          provider.HealthcheckUrl(),
 		"updatedAt":        provider.UpdateTime().Format("2006-01-02T15:04:05.999999999-07:00"),
 		"proxies": common.Map(provider.Outbounds(), func(it adapter.Outbound) *badjson.JSONObject {
 			return proxyInfo(server, it)

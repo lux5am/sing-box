@@ -81,6 +81,10 @@ func (a *myProviderAdapter) Path() string {
 	return a.path
 }
 
+func (a *myProviderAdapter) HealthcheckUrl() string {
+	return a.healthcheckUrl
+}
+
 func (a *myProviderAdapter) Type() string {
 	return a.providerType
 }
@@ -237,6 +241,11 @@ func decodeBase64Safe(content string) string {
 func (p *myProviderAdapter) checkChange(outbounds []option.Outbound) bool {
 	if len(p.lastOuts) != len(outbounds) {
 		return true
+	}
+	for i := range p.lastOuts {
+		if p.lastOuts[i].Tag != outbounds[i].Tag {
+			return true
+		}
 	}
 	outMap := make(map[string]option.Outbound, len(p.lastOuts))
 	for _, out := range p.lastOuts {

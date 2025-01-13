@@ -11,6 +11,7 @@ type OutboundProvider interface {
 	Tag() string
 	Path() string
 	Type() string
+	HealthcheckUrl() string
 	Outbounds() []Outbound
 	Outbound(tag string) (Outbound, bool)
 	UpdateTime() time.Time

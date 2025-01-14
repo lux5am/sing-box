@@ -34,6 +34,8 @@ type DNSClientOptions struct {
 	DisableExpire    bool                  `json:"disable_expire,omitempty"`
 	IndependentCache bool                  `json:"independent_cache,omitempty"`
 	RoundRobinCache  bool                  `json:"round_robin_cache,omitempty"`
+	MinCacheTTL      uint32                `json:"min_cache_ttl,omitempty"`
+	MaxCacheTTL      uint32                `json:"max_cache_ttl,omitempty"`
 	CacheCapacity    uint32                `json:"cache_capacity,omitempty"`
 	ClientSubnet     *badoption.Prefixable `json:"client_subnet,omitempty"`
 }

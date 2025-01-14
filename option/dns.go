@@ -29,6 +29,7 @@ type DNSClientOptions struct {
 	DisableCache     bool           `json:"disable_cache,omitempty"`
 	DisableExpire    bool           `json:"disable_expire,omitempty"`
 	IndependentCache bool           `json:"independent_cache,omitempty"`
+	RoundRobinCache  bool           `json:"round_robin_cache,omitempty"`
 	ClientSubnet     *AddrPrefix    `json:"client_subnet,omitempty"`
 }
 

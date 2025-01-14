@@ -113,6 +113,8 @@ func NewRouter(ctx context.Context, logFactory log.Factory, options option.Route
 		DisableExpire:    dnsOptions.DNSClientOptions.DisableExpire,
 		IndependentCache: dnsOptions.DNSClientOptions.IndependentCache,
 		RoundRobinCache:  dnsOptions.DNSClientOptions.RoundRobinCache,
+		MinCacheTTL:      dnsOptions.DNSClientOptions.MinCacheTTL,
+		MaxCacheTTL:      dnsOptions.DNSClientOptions.MaxCacheTTL,
 		CacheCapacity:    dnsOptions.DNSClientOptions.CacheCapacity,
 		Hosts:            dnsHosts,
 		RDRC: func() dns.RDRCStore {

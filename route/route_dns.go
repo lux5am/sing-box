@@ -34,6 +34,10 @@ func (m *DNSReverseMapping) Save(address netip.Addr, domain string, ttl int) {
 	m.cache.StoreWithExpire(address, domain, time.Now().Add(time.Duration(ttl)*time.Second))
 }
 
+func (m *DNSReverseMapping) Store(address netip.Addr, domain string) {
+	m.cache.Store(address, domain)
+}
+
 func (m *DNSReverseMapping) Query(address netip.Addr) (string, bool) {
 	domain, loaded := m.cache.Load(address)
 	return domain, loaded

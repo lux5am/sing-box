@@ -328,6 +328,16 @@ func NewRouter(ctx context.Context, logFactory log.Factory, options option.Route
 
 	if dnsOptions.ReverseMapping {
 		router.dnsReverseMapping = NewDNSReverseMapping()
+		if len(dnsOptions.Hosts) > 0 {
+			for domain, addrs := range dnsOptions.Hosts {
+				for _, addr := range addrs {
+					daddr, err := netip.ParseAddr(addr)
+					if err == nil {
+						router.dnsReverseMapping.Store(daddr, domain)
+					}
+				}
+			}
+		}
 	}
 
 	if fakeIPOptions := dnsOptions.FakeIP; fakeIPOptions != nil && dnsOptions.FakeIP.Enabled {

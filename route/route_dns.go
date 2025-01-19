@@ -166,8 +166,16 @@ func (r *Router) Exchange(ctx context.Context, message *mDNS.Msg) (*mDNS.Msg, er
 	if response = r.dnsClient.SearchIPHosts(ctx, message, r.defaultDomainStrategy); response != nil {
 		return response, nil
 	}
-	if response, cached = r.dnsClient.ExchangeCache(ctx, message); cached {
-		return response, nil
+	if !r.dnsClient.UpdateDnsCacheFromContext(ctx) {
+		var needUpdate bool
+		if response, cached, needUpdate = r.dnsClient.ExchangeCache(ctx, message); cached {
+			if needUpdate {
+				go func(ctx context.Context, message *mDNS.Msg) {
+					r.Exchange(r.dnsClient.UpdateDnsCacheToContext(ctx), message)
+				}(ctx, message)
+			}
+			return response, nil
+		}
 	}
 	var metadata *adapter.InboundContext
 	ctx, metadata = adapter.ExtendContext(ctx)
@@ -269,12 +277,19 @@ func (r *Router) lookup(ctx context.Context, domain string, strategy dns.DomainS
 			err = dns.RCodeNameError
 		}
 	}
-	responseAddrs, cached = r.dnsClient.LookupCache(ctx, domain, strategy)
-	if cached {
-		if len(responseAddrs) == 0 {
-			return nil, dns.RCodeNameError
+	if !r.dnsClient.UpdateDnsCacheFromContext(ctx) {
+		var needUpdate bool
+		if responseAddrs, cached, needUpdate = r.dnsClient.LookupCache(ctx, domain, strategy); cached {
+			if needUpdate {
+				go func(ctx context.Context, domain string, strategy dns.DomainStrategy) {
+					r.lookup(r.dnsClient.UpdateDnsCacheToContext(ctx), domain, strategy)
+				}(ctx, domain, strategy)
+			}
+			if len(responseAddrs) == 0 {
+				return nil, dns.RCodeNameError
+			}
+			return responseAddrs, nil
 		}
-		return responseAddrs, nil
 	}
 	r.dnsLogger.DebugContext(ctx, "lookup domain ", domain)
 	ctx, metadata := adapter.ExtendContext(ctx)

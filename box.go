@@ -140,6 +140,7 @@ func New(options Options) (*Box, error) {
 
 	ctx = pause.WithDefaultManager(ctx)
 	experimentalOptions := common.PtrValueOrDefault(options.Experimental)
+	experimentalOptions.Apply()
 	err := applyDebugOptions(common.PtrValueOrDefault(experimentalOptions.Debug))
 	if err != nil {
 		return nil, err

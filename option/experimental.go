@@ -14,6 +14,8 @@ type ExperimentalOptions struct {
 	Debug     *DebugOptions     `json:"debug,omitempty"`
 	Timeout   *TimeoutOptions   `json:"timeout,omitempty"`
 	Constant  *ConstantOptions  `json:"constant,omitempty"`
+
+	URLTestUnifiedDelay bool `json:"urltest_unified_delay,omitempty"`
 }
 
 func (o *ExperimentalOptions) Apply() {
@@ -23,6 +25,7 @@ func (o *ExperimentalOptions) Apply() {
 	if o.Constant != nil {
 		o.Constant.Apply()
 	}
+	C.URLTestUnifiedDelay = o.URLTestUnifiedDelay
 }
 
 type CacheFileOptions struct {

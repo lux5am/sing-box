@@ -2,6 +2,8 @@ package constant
 
 import "time"
 
+var URLTestUnifiedDelay = false
+
 var (
 	TCPKeepAliveInitial        = 10 * time.Minute
 	TCPKeepAliveInterval       = 75 * time.Second

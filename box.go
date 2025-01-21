@@ -137,6 +137,7 @@ func New(options Options) (*Box, error) {
 			C.FakeIPMetadataSaveInterval = time.Duration(experimentalOptions.Timeout.FakeIPMetadataSaveInterval)
 		}
 	}
+	C.URLTestUnifiedDelay = experimentalOptions.URLTestUnifiedDelay
 	router, err := route.NewRouter(
 		ctx,
 		logFactory,

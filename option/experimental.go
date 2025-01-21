@@ -9,6 +9,7 @@ type ExperimentalOptions struct {
 	Debug     *DebugOptions     `json:"debug,omitempty"`
 	Timeout   *TimeoutOptions   `json:"timeout,omitempty"`
 	Constant  *ConstantOptions  `json:"constant,omitempty"`
+	URLTestUnifiedDelay bool    `json:"urltest_unified_delay,omitempty"`
 }
 
 type CacheFileOptions struct {

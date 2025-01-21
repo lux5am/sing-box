@@ -5,6 +5,7 @@ type ExperimentalOptions struct {
 	ClashAPI  *ClashAPIOptions  `json:"clash_api,omitempty"`
 	V2RayAPI  *V2RayAPIOptions  `json:"v2ray_api,omitempty"`
 	Debug     *DebugOptions     `json:"debug,omitempty"`
+	Timeout   *TimeoutOptions   `json:"timeout,omitempty"`
 }
 
 type CacheFileOptions struct {
@@ -49,4 +50,23 @@ type V2RayStatsServiceOptions struct {
 	Inbounds  []string `json:"inbounds,omitempty"`
 	Outbounds []string `json:"outbounds,omitempty"`
 	Users     []string `json:"users,omitempty"`
+}
+
+type TimeoutOptions struct {
+	TCPKeepAliveInitial        Duration `json:"tcp_keep_alive_initial,omitempty"`
+	TCPKeepAliveInterval       Duration `json:"tcp_keep_alive_interval,omitempty"`
+	TCPConnectTimeout          Duration `json:"tcp_connect_timeout,omitempty"`
+	TCPTimeout                 Duration `json:"tcp_timeout,omitempty"`
+	ReadPayloadTimeout         Duration `json:"read_payload_timeout,omitempty"`
+	DNSTimeout                 Duration `json:"dns_timeout,omitempty"`
+	QUICTimeout                Duration `json:"dns_timeout,omitempty"`
+	STUNTimeout                Duration `json:"dns_timeout,omitempty"`
+	UDPTimeout                 Duration `json:"udp_timeout,omitempty"`
+	DefaultDonloadInterval     Duration `json:"default_download_interval,omitempty"`
+	DefaultURLTestInterval     Duration `json:"default_urltest_interval,omitempty"`
+	DefaultURLTestIdleTimeout  Duration `json:"default_urltest_idle_timeout,omitempty"`
+	StartTimeout               Duration `json:"start_timeout,omitempty"`
+	StopTimeout                Duration `json:"stop_timeout,omitempty"`
+	FatalStopTimeout           Duration `json:"fatal_stop_timeout,omitempty"`
+	FakeIPMetadataSaveInterval Duration `json:"fakeip_metadata_save_interval,omitempty"`
 }

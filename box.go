@@ -242,6 +242,7 @@ func New(options Options) (*Box, error) {
 			C.DefaultDNSTTL = experimentalOptions.Constant.DefaultDNSTTL
 		}
 	}
+	C.URLTestUnifiedDelay = experimentalOptions.URLTestUnifiedDelay
 
 	var internalServices []adapter.LifecycleService
 	certificateOptions := common.PtrValueOrDefault(options.Certificate)

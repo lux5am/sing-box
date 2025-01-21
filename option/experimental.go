@@ -7,6 +7,7 @@ type ExperimentalOptions struct {
 	ClashAPI  *ClashAPIOptions  `json:"clash_api,omitempty"`
 	V2RayAPI  *V2RayAPIOptions  `json:"v2ray_api,omitempty"`
 	Debug     *DebugOptions     `json:"debug,omitempty"`
+	Timeout   *TimeoutOptions   `json:"timeout,omitempty"`
 }
 
 type CacheFileOptions struct {
@@ -51,4 +52,26 @@ type V2RayStatsServiceOptions struct {
 	Inbounds  []string `json:"inbounds,omitempty"`
 	Outbounds []string `json:"outbounds,omitempty"`
 	Users     []string `json:"users,omitempty"`
+}
+
+type TimeoutOptions struct {
+	TCPKeepAliveInitial        badoption.Duration `json:"tcp_keep_alive_initial,omitempty"`
+	TCPKeepAliveInterval       badoption.Duration `json:"tcp_keep_alive_interval,omitempty"`
+	TCPConnectTimeout          badoption.Duration `json:"tcp_connect_timeout,omitempty"`
+	TCPTimeout                 badoption.Duration `json:"tcp_timeout,omitempty"`
+	ReadPayloadTimeout         badoption.Duration `json:"read_payload_timeout,omitempty"`
+	DNSTimeout                 badoption.Duration `json:"dns_timeout,omitempty"`
+	UDPTimeout                 badoption.Duration `json:"udp_timeout,omitempty"`
+	DefaultDonloadInterval     badoption.Duration `json:"default_download_interval,omitempty"`
+	DefaultURLTestInterval     badoption.Duration `json:"default_urltest_interval,omitempty"`
+	DefaultURLTestIdleTimeout  badoption.Duration `json:"default_urltest_idle_timeout,omitempty"`
+	StartTimeout               badoption.Duration `json:"start_timeout,omitempty"`
+	StopTimeout                badoption.Duration `json:"stop_timeout,omitempty"`
+	FatalStopTimeout           badoption.Duration `json:"fatal_stop_timeout,omitempty"`
+	FakeIPMetadataSaveInterval badoption.Duration `json:"fakeip_metadata_save_interval,omitempty"`
+	ProtocolDNS                badoption.Duration `json:"protocol_dns,omitempty"`
+	ProtocolNTP                badoption.Duration `json:"protocol_ntp,omitempty"`
+	ProtocolSTUN               badoption.Duration `json:"protocol_stun,omitempty"`
+	ProtocolQUIC               badoption.Duration `json:"protocol_quic,omitempty"`
+	ProtocolDTLS               badoption.Duration `json:"protocol_dtls,omitempty"`
 }

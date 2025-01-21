@@ -132,6 +132,65 @@ func New(options Options) (*Box, error) {
 	if err != nil {
 		return nil, E.Cause(err, "create log factory")
 	}
+	if experimentalOptions.Timeout != nil {
+		if experimentalOptions.Timeout.TCPKeepAliveInitial != 0 {
+			C.TCPKeepAliveInitial = time.Duration(experimentalOptions.Timeout.TCPKeepAliveInitial)
+		}
+		if experimentalOptions.Timeout.TCPKeepAliveInterval != 0 {
+			C.TCPKeepAliveInterval = time.Duration(experimentalOptions.Timeout.TCPKeepAliveInterval)
+		}
+		if experimentalOptions.Timeout.TCPConnectTimeout != 0 {
+			C.TCPConnectTimeout = time.Duration(experimentalOptions.Timeout.TCPConnectTimeout)
+		}
+		if experimentalOptions.Timeout.TCPTimeout != 0 {
+			C.TCPTimeout = time.Duration(experimentalOptions.Timeout.TCPTimeout)
+		}
+		if experimentalOptions.Timeout.ReadPayloadTimeout != 0 {
+			C.ReadPayloadTimeout = time.Duration(experimentalOptions.Timeout.ReadPayloadTimeout)
+		}
+		if experimentalOptions.Timeout.DNSTimeout != 0 {
+			C.DNSTimeout = time.Duration(experimentalOptions.Timeout.DNSTimeout)
+		}
+		if experimentalOptions.Timeout.UDPTimeout != 0 {
+			C.UDPTimeout = time.Duration(experimentalOptions.Timeout.UDPTimeout)
+		}
+		if experimentalOptions.Timeout.DefaultDonloadInterval != 0 {
+			C.DefaultDonloadInterval = time.Duration(experimentalOptions.Timeout.DefaultDonloadInterval)
+		}
+		if experimentalOptions.Timeout.DefaultURLTestInterval != 0 {
+			C.DefaultURLTestInterval = time.Duration(experimentalOptions.Timeout.DefaultURLTestInterval)
+		}
+		if experimentalOptions.Timeout.DefaultURLTestIdleTimeout != 0 {
+			C.DefaultURLTestIdleTimeout = time.Duration(experimentalOptions.Timeout.DefaultURLTestIdleTimeout)
+		}
+		if experimentalOptions.Timeout.StartTimeout != 0 {
+			C.StartTimeout = time.Duration(experimentalOptions.Timeout.StartTimeout)
+		}
+		if experimentalOptions.Timeout.StopTimeout != 0 {
+			C.StopTimeout = time.Duration(experimentalOptions.Timeout.StopTimeout)
+		}
+		if experimentalOptions.Timeout.FatalStopTimeout != 0 {
+			C.FatalStopTimeout = time.Duration(experimentalOptions.Timeout.FatalStopTimeout)
+		}
+		if experimentalOptions.Timeout.FakeIPMetadataSaveInterval != 0 {
+			C.FakeIPMetadataSaveInterval = time.Duration(experimentalOptions.Timeout.FakeIPMetadataSaveInterval)
+		}
+		if experimentalOptions.Timeout.ProtocolDNS != 0 {
+			C.ProtocolTimeouts[C.ProtocolDNS] = time.Duration(experimentalOptions.Timeout.ProtocolDNS)
+		}
+		if experimentalOptions.Timeout.ProtocolNTP != 0 {
+			C.ProtocolTimeouts[C.ProtocolNTP] = time.Duration(experimentalOptions.Timeout.ProtocolNTP)
+		}
+		if experimentalOptions.Timeout.ProtocolSTUN != 0 {
+			C.ProtocolTimeouts[C.ProtocolSTUN] = time.Duration(experimentalOptions.Timeout.ProtocolSTUN)
+		}
+		if experimentalOptions.Timeout.ProtocolQUIC != 0 {
+			C.ProtocolTimeouts[C.ProtocolQUIC] = time.Duration(experimentalOptions.Timeout.ProtocolQUIC)
+		}
+		if experimentalOptions.Timeout.ProtocolDTLS != 0 {
+			C.ProtocolTimeouts[C.ProtocolDTLS] = time.Duration(experimentalOptions.Timeout.ProtocolDTLS)
+		}
+	}
 
 	routeOptions := common.PtrValueOrDefault(options.Route)
 	endpointManager := endpoint.NewManager(logFactory.NewLogger("endpoint"), endpointRegistry)

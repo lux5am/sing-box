@@ -191,6 +191,7 @@ func New(options Options) (*Box, error) {
 			C.ProtocolTimeouts[C.ProtocolDTLS] = time.Duration(experimentalOptions.Timeout.ProtocolDTLS)
 		}
 	}
+	C.URLTestUnifiedDelay = experimentalOptions.URLTestUnifiedDelay
 
 	routeOptions := common.PtrValueOrDefault(options.Route)
 	endpointManager := endpoint.NewManager(logFactory.NewLogger("endpoint"), endpointRegistry)

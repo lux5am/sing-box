@@ -203,6 +203,7 @@ func New(options Options) (*Box, error) {
 			C.ProtocolTimeouts[C.ProtocolDTLS] = time.Duration(experimentalOptions.Timeout.ProtocolDTLS)
 		}
 	}
+	C.URLTestUnifiedDelay = experimentalOptions.URLTestUnifiedDelay
 
 	var services []adapter.LifecycleService
 	certificateOptions := common.PtrValueOrDefault(options.Certificate)

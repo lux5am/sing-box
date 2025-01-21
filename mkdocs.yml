@@ -126,6 +126,7 @@ nav:
           - Cache File: configuration/experimental/cache-file.md
           - Clash API: configuration/experimental/clash-api.md
           - V2Ray API: configuration/experimental/v2ray-api.md
+          - Timeout: configuration/experimental/timeout.md
       - Shared:
           - Listen Fields: configuration/shared/listen.md
           - Dial Fields: configuration/shared/dial.md

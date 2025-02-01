@@ -57,6 +57,8 @@ require (
 
 //replace github.com/sagernet/sing => ../sing
 
+replace github.com/sagernet/sing-tun v0.6.1 => github.com/lux5am/sing-tun v0.6.1-0.20250210200533-728e8b7540ca
+
 require (
 	github.com/ajg/form v1.5.1 // indirect
 	github.com/andybalholm/brotli v1.0.6 // indirect

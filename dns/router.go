@@ -296,18 +296,18 @@ func (r *Router) Exchange(ctx context.Context, message *mDNS.Msg, options adapte
 				break
 			}
 		}
-	}
-	if err != nil {
-		return nil, err
-	}
-	if r.dnsReverseMapping != nil && len(message.Question) > 0 && response != nil && len(response.Answer) > 0 {
-		if transport.Type() != C.DNSTypeFakeIP {
-			for _, answer := range response.Answer {
-				switch record := answer.(type) {
-				case *mDNS.A:
-					r.dnsReverseMapping.AddWithLifetime(M.AddrFromIP(record.A), FqdnToDomain(record.Hdr.Name), time.Duration(record.Hdr.Ttl)*time.Second)
-				case *mDNS.AAAA:
-					r.dnsReverseMapping.AddWithLifetime(M.AddrFromIP(record.AAAA), FqdnToDomain(record.Hdr.Name), time.Duration(record.Hdr.Ttl)*time.Second)
+		if err != nil {
+			return nil, err
+		}
+		if r.dnsReverseMapping != nil && len(message.Question) > 0 && response != nil && len(response.Answer) > 0 {
+			if transport.Type() != C.DNSTypeFakeIP {
+				for _, answer := range response.Answer {
+					switch record := answer.(type) {
+					case *mDNS.A:
+						r.dnsReverseMapping.AddWithLifetime(M.AddrFromIP(record.A), FqdnToDomain(record.Hdr.Name), time.Duration(record.Hdr.Ttl)*time.Second)
+					case *mDNS.AAAA:
+						r.dnsReverseMapping.AddWithLifetime(M.AddrFromIP(record.AAAA), FqdnToDomain(record.Hdr.Name), time.Duration(record.Hdr.Ttl)*time.Second)
+					}
 				}
 			}
 		}

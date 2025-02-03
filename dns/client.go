@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net"
 	"net/netip"
+	"sync"
 	"time"
 
 	"github.com/sagernet/sing-box/adapter"
@@ -29,6 +30,85 @@ var (
 
 var _ adapter.DNSClient = (*Client)(nil)
 
+type dnsAnswer struct {
+	mu  sync.Mutex
+	rra []dns.RR
+	rr4 []dns.RR
+	rr6 []dns.RR
+}
+
+func (rs *dnsAnswer) RoundRobin() []dns.RR {
+	answer := make([]dns.RR, 0, len(rs.rra)+len(rs.rr4)+len(rs.rr6))
+	rs.mu.Lock()
+	defer rs.mu.Unlock()
+	if len(rs.rr4) > 0 {
+		rr4 := make([]dns.RR, 0, len(rs.rr4))
+		rr4 = append(rr4, rs.rr4[len(rs.rr4)-1])
+		if len(rs.rr4) > 1 {
+			rr4 = append(rr4, rs.rr4[:len(rs.rr4)-1]...)
+		}
+		rs.rr4 = rr4
+	}
+	if len(rs.rr6) > 0 {
+		rr6 := make([]dns.RR, 0, len(rs.rr6))
+		rr6 = append(rr6, rs.rr6[len(rs.rr6)-1])
+		if len(rs.rr6) > 1 {
+			rr6 = append(rr6, rs.rr6[:len(rs.rr6)-1]...)
+		}
+		rs.rr6 = rr6
+	}
+	for _, recordList := range [][]dns.RR{rs.rra, rs.rr4, rs.rr6} {
+		for _, record := range recordList {
+			answer = append(answer, dns.Copy(record))
+		}
+	}
+	return answer
+}
+
+type dnsMsg struct {
+	msg *dns.Msg
+	rrs *dnsAnswer
+}
+
+func (dm *dnsMsg) Copy() *dns.Msg {
+	msg := dm.msg.Copy()
+	if dm.rrs != nil {
+		msg.Answer = dm.rrs.RoundRobin()
+	}
+	return msg
+}
+
+func (c *Client) newDnsMsg(msg *dns.Msg) *dnsMsg {
+	dMsg := &dnsMsg{msg: msg.Copy()}
+	if !c.cacheRoundRobin {
+		return dMsg
+	}
+	var (
+		rra []dns.RR
+		rr4 []dns.RR
+		rr6 []dns.RR
+	)
+	for _, ans := range msg.Answer {
+		switch a := ans.(type) {
+		case *dns.A:
+			rr4 = append(rr4, a)
+		case *dns.AAAA:
+			rr6 = append(rr6, a)
+		default:
+			rra = append(rra, a)
+		}
+	}
+	if len(rr4) > 1 || len(rr6) > 1 {
+		dMsg.msg.Answer = nil
+		dMsg.rrs = &dnsAnswer{
+			rra: rra,
+			rr4: rr4,
+			rr6: rr6,
+		}
+	}
+	return dMsg
+}
+
 type Client struct {
 	ctx               context.Context
 	timeout           time.Duration
@@ -38,13 +118,14 @@ type Client struct {
 	cacheCapacity     uint32
 	cacheMinTTL       uint32
 	cacheMaxTTL       uint32
+	cacheRoundRobin   bool
 	clientSubnet      netip.Prefix
 	rdrc              adapter.RDRCStore
 	initRDRCFunc      func() adapter.RDRCStore
 	dnsCache          adapter.DNSCacheStore
 	initDNSCacheFunc  func() adapter.DNSCacheStore
 	logger            logger.ContextLogger
-	cache             freelru.Cache[dnsCacheKey, *dns.Msg]
+	cache             freelru.Cache[dnsCacheKey, *dnsMsg]
 	cacheLock         compatible.Map[dnsCacheKey, chan struct{}]
 	backgroundRefresh compatible.Map[dnsCacheKey, struct{}]
 }
@@ -58,6 +139,7 @@ type ClientOptions struct {
 	CacheCapacity     uint32
 	CacheMinTTL       uint32
 	CacheMaxTTL       uint32
+	CacheRoundRobin   bool
 	ClientSubnet      netip.Prefix
 	RDRC              func() adapter.RDRCStore
 	DNSCache          func() adapter.DNSCacheStore
@@ -78,6 +160,7 @@ func NewClient(options ClientOptions) *Client {
 		cacheCapacity:     cacheCapacity,
 		cacheMinTTL:       options.CacheMinTTL,
 		cacheMaxTTL:       options.CacheMaxTTL,
+		cacheRoundRobin:   options.CacheRoundRobin,
 		clientSubnet:      options.ClientSubnet,
 		initRDRCFunc:      options.RDRC,
 		initDNSCacheFunc:  options.DNSCache,
@@ -116,7 +199,7 @@ func (c *Client) initializeMemoryCache() {
 	if c.disableCache || c.cache != nil {
 		return
 	}
-	c.cache = common.Must1(freelru.NewSharded[dnsCacheKey, *dns.Msg](c.cacheCapacity, maphash.NewHasher[dnsCacheKey]().Hash32))
+	c.cache = common.Must1(freelru.NewSharded[dnsCacheKey, *dnsMsg](c.cacheCapacity, maphash.NewHasher[dnsCacheKey]().Hash32))
 }
 
 func extractNegativeTTL(response *dns.Msg) (uint32, bool) {
@@ -352,9 +435,9 @@ func (c *Client) storeCache(transport adapter.DNSTransport, question dns.Questio
 	}
 	key := dnsCacheKey{Question: question, transportTag: transport.Tag()}
 	if c.disableExpire {
-		c.cache.Add(key, message.Copy())
+		c.cache.Add(key, c.newDnsMsg(message))
 	} else {
-		c.cache.AddWithLifetime(key, message.Copy(), time.Second*time.Duration(timeToLive))
+		c.cache.AddWithLifetime(key, c.newDnsMsg(message), time.Second*time.Duration(timeToLive))
 	}
 }
 
@@ -428,9 +511,9 @@ func (c *Client) loadResponse(question dns.Question, transport adapter.DNSTransp
 	timeNow := time.Now()
 	if timeNow.After(expireAt) {
 		if c.optimisticTimeout > 0 && timeNow.Before(expireAt.Add(c.optimisticTimeout)) {
-			response = response.Copy()
-			normalizeTTL(response, 1)
-			return response, 0, true
+			resp := response.Copy()
+			normalizeTTL(resp, 1)
+			return resp, 0, true
 		}
 		c.cache.Remove(key)
 		return nil, 0, false
@@ -439,9 +522,9 @@ func (c *Client) loadResponse(question dns.Question, transport adapter.DNSTransp
 	if nowTTL < 0 {
 		nowTTL = 0
 	}
-	response = response.Copy()
-	normalizeTTL(response, uint32(nowTTL))
-	return response, nowTTL, false
+	resp := response.Copy()
+	normalizeTTL(resp, uint32(nowTTL))
+	return resp, nowTTL, false
 }
 
 func (c *Client) loadPersistentResponse(question dns.Question, transport adapter.DNSTransport) (*dns.Msg, int, bool) {

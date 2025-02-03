@@ -233,6 +233,7 @@ func (c *Client) Exchange(ctx context.Context, transport adapter.DNSTransport, m
 		}
 	}
 	response.Id = messageId
+	response.MsgHdr.Authoritative = true
 	if !disableCache {
 		c.storeCache(transport, question, response, timeToLive)
 	}

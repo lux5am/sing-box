@@ -36,6 +36,8 @@ type Client struct {
 	disableCache       bool
 	disableExpire      bool
 	independentCache   bool
+	cacheMinTTL        uint32
+	cacheMaxTTL        uint32
 	clientSubnet       netip.Prefix
 	rdrc               adapter.RDRCStore
 	initRDRCFunc       func() adapter.RDRCStore
@@ -53,6 +55,8 @@ type ClientOptions struct {
 	IndependentCache bool
 	CacheCapacity    uint32
 	ClientSubnet     netip.Prefix
+	CacheMinTTL      uint32
+	CacheMaxTTL      uint32
 	RDRC             func() adapter.RDRCStore
 	Logger           logger.ContextLogger
 }
@@ -64,8 +68,13 @@ func NewClient(options ClientOptions) *Client {
 		disableExpire:    options.DisableExpire,
 		independentCache: options.IndependentCache,
 		clientSubnet:     options.ClientSubnet,
+		cacheMinTTL:      options.CacheMinTTL,
+		cacheMaxTTL:      options.CacheMaxTTL,
 		initRDRCFunc:     options.RDRC,
 		logger:           options.Logger,
+	}
+	if client.cacheMinTTL > client.cacheMaxTTL {
+		client.cacheMaxTTL = client.cacheMinTTL
 	}
 	if client.timeout == 0 {
 		client.timeout = C.DNSTimeout
@@ -107,6 +116,28 @@ func extractNegativeTTL(response *dns.Msg) (uint32, bool) {
 		}
 	}
 	return 0, false
+}
+
+func (c *Client) applyMinMaxTTL(msg *dns.Msg) uint32 {
+	var timeToLive uint32
+	for _, recordList := range [][]dns.RR{msg.Answer, msg.Ns, msg.Extra} {
+		for _, record := range recordList {
+			rh := record.Header()
+			if rh.Rrtype == dns.TypeOPT {
+				continue
+			}
+			if c.cacheMinTTL > 0 && rh.Ttl < c.cacheMinTTL {
+				rh.Ttl = c.cacheMinTTL
+			}
+			if c.cacheMaxTTL > 0 && rh.Ttl > c.cacheMaxTTL {
+				rh.Ttl = c.cacheMaxTTL
+			}
+			if timeToLive == 0 || rh.Ttl > 0 && rh.Ttl < timeToLive {
+				timeToLive = rh.Ttl
+			}
+		}
+	}
+	return timeToLive
 }
 
 func (c *Client) Exchange(ctx context.Context, transport adapter.DNSTransport, message *dns.Msg, options adapter.DNSQueryOptions, responseChecker func(responseAddrs []netip.Addr) bool) (*dns.Msg, error) {
@@ -304,7 +335,13 @@ func (c *Client) Exchange(ctx context.Context, transport adapter.DNSTransport, m
 		}
 	}
 	if !disableCache {
-		c.storeCache(transport, question, response, timeToLive)
+		if options.RewriteTTL == nil && (c.cacheMinTTL > 0 || c.cacheMaxTTL > 0) {
+			resp := response.Copy()
+			ttl := c.applyMinMaxTTL(resp)
+			c.storeCache(transport, question, resp, ttl)
+		} else {
+			c.storeCache(transport, question, response, timeToLive)
+		}
 	}
 	response.Id = messageId
 	requestEDNSOpt := message.IsEdns0()

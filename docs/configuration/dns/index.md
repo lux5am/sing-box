@@ -30,6 +30,7 @@ icon: material/alert-decagram
     "disable_cache": false,
     "disable_expire": false,
     "independent_cache": false,
+    "cache_round_robin": false,
     "cache_capacity": 0,
     "cache_min_ttl": 0,
     "cache_max_ttl": 0,
@@ -82,6 +83,10 @@ Conflict with `optimistic`.
     `independent_cache` is deprecated and will be removed in sing-box 1.14.0, check [Migration](/migration/#migrate-independent-dns-cache).
 
 Make each DNS server's cache independent for special purposes. If enabled, will slightly degrade performance.
+
+#### cache_round_robin
+
+Make the order of cached response addresses rotated in round robin manner.
 
 #### cache_capacity
 

@@ -31,6 +31,8 @@ icon: material/alert-decagram
     "disable_expire": false,
     "independent_cache": false,
     "cache_capacity": 0,
+    "cache_min_ttl": 0,
+    "cache_max_ttl": 0,
     "optimistic": false, // or {}
     "timeout": "",
     "reverse_mapping": false,

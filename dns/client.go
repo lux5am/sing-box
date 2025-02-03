@@ -35,6 +35,8 @@ type Client struct {
 	disableExpire    bool
 	independentCache bool
 	clientSubnet     netip.Prefix
+	minCacheTTL      uint32
+	maxCacheTTL      uint32
 	rdrc             adapter.RDRCStore
 	initRDRCFunc     func() adapter.RDRCStore
 	logger           logger.ContextLogger
@@ -49,6 +51,8 @@ type ClientOptions struct {
 	IndependentCache bool
 	CacheCapacity    uint32
 	ClientSubnet     netip.Prefix
+	MinCacheTTL      uint32
+	MaxCacheTTL      uint32
 	RDRC             func() adapter.RDRCStore
 	Logger           logger.ContextLogger
 }
@@ -60,8 +64,16 @@ func NewClient(options ClientOptions) *Client {
 		disableExpire:    options.DisableExpire,
 		independentCache: options.IndependentCache,
 		clientSubnet:     options.ClientSubnet,
+		minCacheTTL:      options.MinCacheTTL,
+		maxCacheTTL:      options.MaxCacheTTL,
 		initRDRCFunc:     options.RDRC,
 		logger:           options.Logger,
+	}
+	if client.maxCacheTTL == 0 {
+		client.maxCacheTTL = 86400
+	}
+	if client.minCacheTTL > client.maxCacheTTL {
+		client.maxCacheTTL = client.minCacheTTL
 	}
 	if client.timeout == 0 {
 		client.timeout = C.DNSTimeout
@@ -230,6 +242,12 @@ func (c *Client) Exchange(ctx context.Context, transport adapter.DNSTransport, m
 				timeToLive = record.Header().Ttl
 			}
 		}
+	}
+	if timeToLive < c.minCacheTTL {
+		timeToLive = c.minCacheTTL
+	}
+	if timeToLive > c.maxCacheTTL {
+		timeToLive = c.maxCacheTTL
 	}
 	if options.RewriteTTL != nil {
 		timeToLive = *options.RewriteTTL

@@ -317,6 +317,7 @@ func (c *Client) Exchange(ctx context.Context, transport adapter.DNSTransport, m
 			response.SetEdns0(responseEDNSOpt.UDPSize(), responseEDNSOpt.Do())
 		}
 	}
+	response.Authoritative = true
 	logExchangedResponse(c.logger, ctx, response, timeToLive)
 	return response, nil
 }

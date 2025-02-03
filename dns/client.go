@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/netip"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/sagernet/sing-box/adapter"
@@ -31,20 +32,98 @@ var (
 
 var _ adapter.DNSClient = (*Client)(nil)
 
+type dnsAnswer struct {
+	mu  sync.Mutex
+	rra []dns.RR
+	rr4 []dns.RR
+	rr6 []dns.RR
+}
+
+func (rs *dnsAnswer) RoundRobin() []dns.RR {
+	answer := make([]dns.RR, len(rs.rra), len(rs.rra)+len(rs.rr4)+len(rs.rr6))
+	copy(answer, rs.rra)
+	rs.mu.Lock()
+	defer rs.mu.Unlock()
+	if len(rs.rr4) > 0 {
+		rr4 := make([]dns.RR, 0, len(rs.rr4));
+		rr4 = append(rr4, rs.rr4[len(rs.rr4)-1])
+		if len(rs.rr4) > 1 {
+			rr4 = append(rr4, rs.rr4[:len(rs.rr4)-1]...)
+		}
+		answer = append(answer, rr4...)
+		rs.rr4 = rr4
+	}
+	if len(rs.rr6) > 0 {
+		rr6 := make([]dns.RR, 0, len(rs.rr6));
+		rr6 = append(rr6, rs.rr6[len(rs.rr6)-1])
+		if len(rs.rr6) > 1 {
+			rr6 = append(rr6, rs.rr6[:len(rs.rr6)-1]...)
+		}
+		answer = append(answer, rr6...)
+		rs.rr6 = rr6
+	}
+	return answer
+}
+
+type dnsMsg struct {
+	msg *dns.Msg
+	rrs *dnsAnswer
+}
+
+func (dm *dnsMsg) Copy() *dns.Msg {
+	msg := dm.msg.Copy()
+	if dm.rrs != nil {
+		msg.Answer = dm.rrs.RoundRobin()
+	}
+	return msg
+}
+
+func (c *Client) newDnsMsg(msg *dns.Msg) *dnsMsg {
+	dMsg := &dnsMsg{msg: msg.Copy()}
+	if !c.cacheRoundRobin {
+		return dMsg
+	}
+	var (
+		rra []dns.RR
+		rr4 []dns.RR
+		rr6 []dns.RR
+	)
+	for _, ans := range msg.Answer {
+		switch a := ans.(type) {
+		case *dns.A:
+			rr4 = append(rr4, a)
+		case *dns.AAAA:
+			rr6 = append(rr6, a)
+		default:
+			rra = append(rra, a)
+		}
+	}
+	if len(rr4) > 1 || len(rr6) > 1 {
+		dMsg.msg.Answer = nil
+		dMsg.rrs = &dnsAnswer{
+			rra: rra,
+			rr4: rr4,
+			rr6: rr6,
+		}
+	}
+	return dMsg
+}
+
 type Client struct {
 	timeout            time.Duration
 	disableCache       bool
 	disableExpire      bool
 	independentCache   bool
+	cacheRoundRobin    bool
 	cacheMinTTL        uint32
 	cacheMaxTTL        uint32
 	clientSubnet       netip.Prefix
 	rdrc               adapter.RDRCStore
 	initRDRCFunc       func() adapter.RDRCStore
 	logger             logger.ContextLogger
-	cache              freelru.Cache[dns.Question, *dns.Msg]
+	cache              freelru.Cache[dns.Question, *dnsMsg]
 	cacheLock          compatible.Map[dns.Question, chan struct{}]
-	transportCache     freelru.Cache[transportCacheKey, *dns.Msg]
+	transportCache     freelru.Cache[transportCacheKey, *dnsMsg]
 	transportCacheLock compatible.Map[dns.Question, chan struct{}]
 }
 
@@ -53,6 +132,7 @@ type ClientOptions struct {
 	DisableCache     bool
 	DisableExpire    bool
 	IndependentCache bool
+	CacheRoundRobin  bool
 	CacheCapacity    uint32
 	ClientSubnet     netip.Prefix
 	CacheMinTTL      uint32
@@ -67,6 +147,7 @@ func NewClient(options ClientOptions) *Client {
 		disableCache:     options.DisableCache,
 		disableExpire:    options.DisableExpire,
 		independentCache: options.IndependentCache,
+		cacheRoundRobin:  options.CacheRoundRobin,
 		clientSubnet:     options.ClientSubnet,
 		cacheMinTTL:      options.CacheMinTTL,
 		cacheMaxTTL:      options.CacheMaxTTL,
@@ -88,9 +169,9 @@ func NewClient(options ClientOptions) *Client {
 	}
 	if !client.disableCache {
 		if !client.independentCache {
-			client.cache = common.Must1(freelru.NewSharded[dns.Question, *dns.Msg](cacheCapacity, maphash.NewHasher[dns.Question]().Hash32))
+			client.cache = common.Must1(freelru.NewSharded[dns.Question, *dnsMsg](cacheCapacity, maphash.NewHasher[dns.Question]().Hash32))
 		} else {
-			client.transportCache = common.Must1(freelru.NewSharded[transportCacheKey, *dns.Msg](cacheCapacity, maphash.NewHasher[transportCacheKey]().Hash32))
+			client.transportCache = common.Must1(freelru.NewSharded[transportCacheKey, *dnsMsg](cacheCapacity, maphash.NewHasher[transportCacheKey]().Hash32))
 		}
 	}
 	return client
@@ -407,21 +488,21 @@ func (c *Client) storeCache(transport adapter.DNSTransport, question dns.Questio
 	}
 	if c.disableExpire {
 		if !c.independentCache {
-			c.cache.Add(question, message)
+			c.cache.Add(question, c.newDnsMsg(message))
 		} else {
 			c.transportCache.Add(transportCacheKey{
 				Question:     question,
 				transportTag: transport.Tag(),
-			}, message)
+			}, c.newDnsMsg(message))
 		}
 	} else {
 		if !c.independentCache {
-			c.cache.AddWithLifetime(question, message, time.Second*time.Duration(timeToLive))
+			c.cache.AddWithLifetime(question, c.newDnsMsg(message), time.Second*time.Duration(timeToLive))
 		} else {
 			c.transportCache.AddWithLifetime(transportCacheKey{
 				Question:     question,
 				transportTag: transport.Tag(),
-			}, message, time.Second*time.Duration(timeToLive))
+			}, c.newDnsMsg(message), time.Second*time.Duration(timeToLive))
 		}
 	}
 }
@@ -468,14 +549,15 @@ func (c *Client) questionCache(question dns.Question, transport adapter.DNSTrans
 
 func (c *Client) loadResponse(question dns.Question, transport adapter.DNSTransport) (*dns.Msg, int) {
 	var (
+		cacheM   *dnsMsg
 		response *dns.Msg
 		loaded   bool
 	)
 	if c.disableExpire {
 		if !c.independentCache {
-			response, loaded = c.cache.Get(question)
+			cacheM, loaded = c.cache.Get(question)
 		} else {
-			response, loaded = c.transportCache.Get(transportCacheKey{
+			cacheM, loaded = c.transportCache.Get(transportCacheKey{
 				Question:     question,
 				transportTag: transport.Tag(),
 			})
@@ -483,13 +565,13 @@ func (c *Client) loadResponse(question dns.Question, transport adapter.DNSTransp
 		if !loaded {
 			return nil, 0
 		}
-		return response.Copy(), 0
+		return cacheM.Copy(), 0
 	} else {
 		var expireAt time.Time
 		if !c.independentCache {
-			response, expireAt, loaded = c.cache.GetWithLifetime(question)
+			cacheM, expireAt, loaded = c.cache.GetWithLifetime(question)
 		} else {
-			response, expireAt, loaded = c.transportCache.GetWithLifetime(transportCacheKey{
+			cacheM, expireAt, loaded = c.transportCache.GetWithLifetime(transportCacheKey{
 				Question:     question,
 				transportTag: transport.Tag(),
 			})
@@ -509,6 +591,7 @@ func (c *Client) loadResponse(question dns.Question, transport adapter.DNSTransp
 			}
 			return nil, 0
 		}
+		response = cacheM.Copy()
 		var originTTL int
 		for _, recordList := range [][]dns.RR{response.Answer, response.Ns, response.Extra} {
 			for _, record := range recordList {
@@ -521,7 +604,6 @@ func (c *Client) loadResponse(question dns.Question, transport adapter.DNSTransp
 		if nowTTL < 0 {
 			nowTTL = 0
 		}
-		response = response.Copy()
 		if originTTL > 0 {
 			duration := uint32(originTTL - nowTTL)
 			for _, recordList := range [][]dns.RR{response.Answer, response.Ns, response.Extra} {

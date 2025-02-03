@@ -456,6 +456,7 @@ func (c *Client) finishExchange(transport adapter.DNSTransport, operation *excha
 			response.SetEdns0(responseEDNSOpt.UDPSize(), responseEDNSOpt.Do())
 		}
 	}
+	response.Authoritative = true
 	logExchangedResponse(c.logger, ctx, response, timeToLive)
 	return response, nil
 }

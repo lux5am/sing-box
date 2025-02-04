@@ -55,6 +55,7 @@ func NewRouter(ctx context.Context, logFactory log.Factory, options option.DNSOp
 		DisableExpire:    options.DNSClientOptions.DisableExpire,
 		IndependentCache: options.DNSClientOptions.IndependentCache,
 		RoundRobinCache:  options.DNSClientOptions.RoundRobinCache,
+		StaleCache:       options.DNSClientOptions.StaleCache,
 		CacheCapacity:    options.DNSClientOptions.CacheCapacity,
 		MinCacheTTL:      options.DNSClientOptions.MinCacheTTL,
 		MaxCacheTTL:      options.DNSClientOptions.MaxCacheTTL,
@@ -216,8 +217,20 @@ func (r *Router) Exchange(ctx context.Context, message *mDNS.Msg, options adapte
 	var (
 		transport adapter.DNSTransport
 		err       error
+		response  *mDNS.Msg
+		cached    bool
 	)
-	response, cached := r.client.ExchangeCache(ctx, message)
+	if !r.client.UpdateDnsCacheFromContext(ctx) {
+		var needUpdate bool
+		if response, cached, needUpdate = r.client.ExchangeCache(ctx, message); cached {
+			if needUpdate {
+				go func(ctx context.Context, message *mDNS.Msg, options adapter.DNSQueryOptions) {
+					r.Exchange(r.client.UpdateDnsCacheToContext(ctx), message, options)
+				}(ctx, message, options)
+			}
+			return response, nil
+		}
+	}
 	if !cached {
 		var metadata *adapter.InboundContext
 		ctx, metadata = adapter.ExtendContext(ctx)
@@ -335,12 +348,19 @@ func (r *Router) Lookup(ctx context.Context, domain string, options adapter.DNSQ
 			err = RCodeNameError
 		}
 	}
-	responseAddrs, cached = r.client.LookupCache(domain, options.Strategy)
-	if cached {
-		if len(responseAddrs) == 0 {
-			return nil, RCodeNameError
+	if !r.client.UpdateDnsCacheFromContext(ctx) {
+		var needUpdate bool
+		if responseAddrs, cached, needUpdate = r.client.LookupCache(domain, options.Strategy); cached {
+			if needUpdate {
+				go func(ctx context.Context, domain string, options adapter.DNSQueryOptions) {
+					r.Lookup(r.client.UpdateDnsCacheToContext(ctx), domain, options)
+				}(ctx, domain, options)
+			}
+			if len(responseAddrs) == 0 {
+				return nil, RCodeNameError
+			}
+			return responseAddrs, nil
 		}
-		return responseAddrs, nil
 	}
 	r.logger.DebugContext(ctx, "lookup domain ", domain)
 	ctx, metadata := adapter.ExtendContext(ctx)

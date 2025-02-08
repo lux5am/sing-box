@@ -14,6 +14,8 @@ import (
 
 type DNSRouter interface {
 	Lifecycle
+	Client() DNSClient
+	DefaultDomainStrategy() C.DomainStrategy
 	Exchange(ctx context.Context, message *dns.Msg, options DNSQueryOptions) (*dns.Msg, error)
 	Lookup(ctx context.Context, domain string, options DNSQueryOptions) ([]netip.Addr, error)
 	ClearCache()
@@ -23,6 +25,10 @@ type DNSRouter interface {
 
 type DNSClient interface {
 	Start()
+	SearchCNAMEHosts(ctx context.Context, message *dns.Msg) (*dns.Msg, []dns.RR)
+	SearchIPHosts(ctx context.Context, message *dns.Msg, strategy C.DomainStrategy) *dns.Msg
+	GetExactDomainFromHosts(ctx context.Context, domain string, nolog bool) string
+	GetAddrsFromHosts(ctx context.Context, domain string, stategy C.DomainStrategy, nolog bool) []netip.Addr
 	Exchange(ctx context.Context, transport DNSTransport, message *dns.Msg, options DNSQueryOptions, responseChecker func(responseAddrs []netip.Addr) bool) (*dns.Msg, error)
 	Lookup(ctx context.Context, transport DNSTransport, domain string, options DNSQueryOptions, responseChecker func(responseAddrs []netip.Addr) bool) ([]netip.Addr, error)
 	LookupCache(domain string, strategy C.DomainStrategy) ([]netip.Addr, bool, bool)

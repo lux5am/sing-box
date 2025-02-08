@@ -23,6 +23,7 @@ type RawDNSOptions struct {
 	Rules          []DNSRule             `json:"rules,omitempty"`
 	Final          string                `json:"final,omitempty"`
 	ReverseMapping bool                  `json:"reverse_mapping,omitempty"`
+	Hosts          map[string]badoption.Listable[string] `json:"hosts,omitempty"`
 	DNSClientOptions
 }
 

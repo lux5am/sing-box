@@ -47,6 +47,67 @@ func reverseRotateSlice[T any](slice []T, steps int32) []T {
 	return append(slice[len(slice)-int(steps):], slice[:len(slice)-int(steps)]...)
 }
 
+type Hosts struct {
+	CNAMEHosts map[string]string
+	IPv4Hosts  map[string]*ipHosts
+	IPv6Hosts  map[string]*ipHosts
+}
+
+type ipHosts struct {
+	index int32
+	addrs []netip.Addr
+}
+
+func (ih *ipHosts) RoundRobin() []netip.Addr {
+	if len(ih.addrs) == 1 {
+		return ih.addrs
+	}
+	newIndex := atomic.AddInt32(&ih.index, 1)
+	validIndex := newIndex % int32(len(ih.addrs))
+	return reverseRotateSlice(ih.addrs, validIndex)
+}
+
+func NewHosts(hostsMap map[string][]string) (*Hosts, error) {
+	if len(hostsMap) == 0 {
+		return nil, nil
+	}
+	hosts := Hosts{
+		CNAMEHosts: make(map[string]string),
+		IPv4Hosts:  make(map[string]*ipHosts),
+		IPv6Hosts:  make(map[string]*ipHosts),
+	}
+	for domain, addrs := range hostsMap {
+		var ipv4Addr, ipv6Addr []netip.Addr
+		for _, addr := range addrs {
+			SAddr := M.ParseSocksaddr(addr)
+			if SAddr.Port != 0 {
+				SAddr.Port = 0
+			}
+			if SAddr.IsFqdn() {
+				hosts.CNAMEHosts[domain] = SAddr.Fqdn
+				if len(addrs) > 1 {
+					break
+				}
+			} else if SAddr.IsIPv4() {
+				ipv4Addr = append(ipv4Addr, SAddr.Addr)
+			} else if SAddr.IsIPv6() {
+				if SAddr.Addr.Is4In6() {
+					ipv4Addr = append(ipv4Addr, netip.AddrFrom4(SAddr.Addr.As4()))
+				} else {
+					ipv6Addr = append(ipv6Addr, SAddr.Addr)
+				}
+			}
+		}
+		if len(ipv4Addr) > 0 {
+			hosts.IPv4Hosts[domain] = &ipHosts{index: -1, addrs: ipv4Addr}
+		}
+		if len(ipv6Addr) > 0 {
+			hosts.IPv6Hosts[domain] = &ipHosts{index: -1, addrs: ipv6Addr}
+		}
+	}
+	return &hosts, nil
+}
+
 func removeAnswersOfType(answers []dns.RR, rrType uint16) []dns.RR {
 	var filteredAnswers []dns.RR
 	for _, ans := range answers {
@@ -109,6 +170,7 @@ type Client struct {
 	staleCache       uint32
 	minCacheTTL      uint32
 	maxCacheTTL      uint32
+	hosts            *Hosts
 	rdrc             adapter.RDRCStore
 	initRDRCFunc     func() adapter.RDRCStore
 	logger           logger.ContextLogger
@@ -129,6 +191,7 @@ type ClientOptions struct {
 	CacheCapacity    uint32
 	MinCacheTTL      uint32
 	MaxCacheTTL      uint32
+	Hosts            *Hosts
 	RDRC             func() adapter.RDRCStore
 	Logger           logger.ContextLogger
 }
@@ -144,6 +207,7 @@ func NewClient(options ClientOptions) *Client {
 		staleCache:       options.StaleCache,
 		minCacheTTL:      options.MinCacheTTL,
 		maxCacheTTL:      options.MaxCacheTTL,
+		hosts:            options.Hosts,
 		initRDRCFunc:     options.RDRC,
 		logger:           options.Logger,
 	}
@@ -181,6 +245,215 @@ func (c *Client) Start() {
 	if c.initRDRCFunc != nil {
 		c.rdrc = c.initRDRCFunc()
 	}
+}
+
+func (c *Client) SearchCNAMEHosts(ctx context.Context, message *dns.Msg) (*dns.Msg, []dns.RR) {
+	if c.hosts == nil || len(message.Question) == 0 {
+		return nil, nil
+	}
+	question := message.Question[0]
+	domain := FqdnToDomain(question.Name)
+	cname, hasHosts := c.hosts.CNAMEHosts[domain]
+	if !hasHosts || (question.Qtype != dns.TypeCNAME && question.Qtype != dns.TypeA && question.Qtype != dns.TypeAAAA) {
+		return nil, nil
+	}
+	var records []dns.RR
+	for {
+		if c.logger != nil {
+			c.logger.DebugContext(ctx, "match CNAME hosts: ", domain, " => ", cname)
+		}
+		domain = cname
+		records = append(records, &dns.CNAME{
+			Hdr: dns.RR_Header{
+				Name:     question.Name,
+				Rrtype:   dns.TypeCNAME,
+				Class:    dns.ClassINET,
+				Ttl:      0,
+				Rdlength: uint16(len(dns.Fqdn(cname))),
+			},
+			Target: dns.Fqdn(cname),
+		})
+		cname, hasHosts = c.hosts.CNAMEHosts[domain]
+		if !hasHosts {
+			break
+		}
+	}
+	if question.Qtype != dns.TypeCNAME {
+		message.Question[0].Name = dns.Fqdn(domain)
+		return nil, records
+	}
+	return &dns.Msg{
+		MsgHdr: dns.MsgHdr{
+			Id:       message.Id,
+			Response: true,
+			Authoritative: true,
+			RecursionDesired: true,
+			RecursionAvailable: true,
+			Rcode:    dns.RcodeSuccess,
+		},
+		Question: []dns.Question{question},
+		Answer:   records,
+	}, nil
+}
+
+func (c *Client) printIPHostsLog(ctx context.Context, domain string, addrs []netip.Addr, nolog bool) {
+	if nolog || c.logger == nil {
+		return
+	}
+	logString := addrs[0].String()
+	versionStr := "IPv4"
+	if addrs[0].Is6() {
+		versionStr = "IPv6"
+	}
+	if len(addrs) > 1 {
+		logString = strings.Join(common.Map(addrs, func(addr netip.Addr) string {
+			return addr.String()
+		}), ", ")
+		logString = "[" + logString + "]"
+	}
+	c.logger.DebugContext(ctx, "match ", versionStr, " hosts: ", domain, " => ", logString)
+}
+
+func (c *Client) SearchIPHosts(ctx context.Context, message *dns.Msg, strategy C.DomainStrategy) *dns.Msg {
+	if c.hosts == nil || len(message.Question) == 0 {
+		return nil
+	}
+	question := message.Question[0]
+	if question.Qtype != dns.TypeA && question.Qtype != dns.TypeAAAA {
+		return nil
+	}
+	domain := FqdnToDomain(question.Name)
+	ipv4Addrs, hasIPv4 := c.hosts.IPv4Hosts[domain]
+	ipv6Addrs, hasIPv6 := c.hosts.IPv6Hosts[domain]
+	response := dns.Msg{
+		MsgHdr: dns.MsgHdr{
+			Id:       message.Id,
+			Response: true,
+			Authoritative: true,
+			RecursionDesired: true,
+			RecursionAvailable: true,
+			Rcode:    dns.RcodeSuccess,
+		},
+		Question: []dns.Question{question},
+	}
+	if !hasIPv4 && !hasIPv6 {
+		return nil
+	}
+	switch question.Qtype {
+	case dns.TypeA:
+		if !hasIPv4 {
+			return nil
+		}
+		if strategy == C.DomainStrategyIPv6Only {
+			if c.logger != nil {
+				c.logger.DebugContext(ctx, "strategy rejected")
+			}
+			break
+		}
+		var ipAddrs []netip.Addr
+		if !c.roundRobinCache {
+			ipAddrs = ipv4Addrs.addrs
+		} else {
+			ipAddrs = ipv4Addrs.RoundRobin()
+		}
+		c.printIPHostsLog(ctx, domain, ipAddrs, false)
+		for _, addr := range ipAddrs {
+			record := addr.AsSlice()
+			response.Answer = append(response.Answer, &dns.A{
+				Hdr: dns.RR_Header{
+					Name:     question.Name,
+					Rrtype:   dns.TypeA,
+					Class:    dns.ClassINET,
+					Ttl:      0,
+					Rdlength: uint16(len(record)),
+				},
+				A: record,
+			})
+		}
+	case dns.TypeAAAA:
+		if !hasIPv6 {
+			return nil
+		}
+		if strategy == C.DomainStrategyIPv4Only {
+			if c.logger != nil {
+				c.logger.DebugContext(ctx, "strategy rejected")
+			}
+			break
+		}
+		var ipAddrs []netip.Addr
+		if !c.roundRobinCache {
+			ipAddrs = ipv6Addrs.addrs
+		} else {
+			ipAddrs = ipv6Addrs.RoundRobin()
+		}
+		c.printIPHostsLog(ctx, domain, ipAddrs, false)
+		for _, addr := range ipAddrs {
+			record := addr.AsSlice()
+			response.Answer = append(response.Answer, &dns.A{
+				Hdr: dns.RR_Header{
+					Name:     question.Name,
+					Rrtype:   dns.TypeAAAA,
+					Class:    dns.ClassINET,
+					Ttl:      0,
+					Rdlength: uint16(len(record)),
+				},
+				A: addr.AsSlice(),
+			})
+		}
+	default:
+		return nil
+	}
+	return &response
+}
+
+func (c *Client) GetExactDomainFromHosts(ctx context.Context, domain string, nolog bool) string {
+	if c.hosts == nil || domain == "" {
+		return domain
+	}
+	for {
+		cname, hasCNAME := c.hosts.CNAMEHosts[domain]
+		if !hasCNAME {
+			break
+		}
+		if !nolog && c.logger != nil {
+			c.logger.DebugContext(ctx, "match CNAME hosts: ", domain, " => ", cname)
+		}
+		domain = cname
+	}
+	return domain
+}
+
+func (c *Client) GetAddrsFromHosts(ctx context.Context, domain string, stategy C.DomainStrategy, nolog bool) []netip.Addr {
+	if c.hosts == nil || domain == "" {
+		return nil
+	}
+	var addrs []netip.Addr
+	ipv4Addrs, hasIPv4 := c.hosts.IPv4Hosts[domain]
+	ipv6Addrs, hasIPv6 := c.hosts.IPv6Hosts[domain]
+	if (!hasIPv4 && !hasIPv6) || (!hasIPv4 && stategy == C.DomainStrategyIPv4Only) || (!hasIPv6 && stategy == C.DomainStrategyIPv6Only) {
+		return nil
+	}
+	if hasIPv4 && stategy != C.DomainStrategyIPv6Only {
+		ipAddrs := ipv4Addrs.addrs
+		if !c.roundRobinCache {
+			ipAddrs = ipv4Addrs.addrs
+		} else {
+			ipAddrs = ipv4Addrs.RoundRobin()
+		}
+		c.printIPHostsLog(ctx, domain, ipAddrs, nolog)
+		addrs = append(addrs, ipAddrs...)
+	}
+	if hasIPv6 && stategy != C.DomainStrategyIPv4Only {
+		var ipAddrs []netip.Addr
+		if !c.roundRobinCache {
+			ipAddrs = ipv6Addrs.addrs
+		} else {
+			ipAddrs = ipv6Addrs.RoundRobin()
+		}
+		c.printIPHostsLog(ctx, domain, ipAddrs, nolog)
+		addrs = append(addrs, ipAddrs...)
+	}
+	return addrs
 }
 
 type updateDnsCacheContext struct{}
@@ -653,7 +926,11 @@ func (c *Client) loadResponse(question dns.Question, transport adapter.DNSTransp
 			duration := uint32(originTTL - nowTTL)
 			for _, recordList := range [][]dns.RR{response.Answer, response.Ns, response.Extra} {
 				for _, record := range recordList {
-					record.Header().Ttl = record.Header().Ttl - duration
+					if record.Header().Ttl < duration {
+						record.Header().Ttl = 0
+					} else {
+						record.Header().Ttl = record.Header().Ttl - duration
+					}
 				}
 			}
 		} else {

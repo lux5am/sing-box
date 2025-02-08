@@ -667,23 +667,32 @@ func (r *Router) actionSniff(
 
 func (r *Router) actionResolve(ctx context.Context, metadata *adapter.InboundContext, action *rule.RuleActionResolve) error {
 	if metadata.Destination.IsFqdn() {
-		var transport adapter.DNSTransport
-		if action.Server != "" {
-			var loaded bool
-			transport, loaded = r.dnsTransport.Transport(action.Server)
-			if !loaded {
-				return E.New("DNS server not found: ", action.Server)
+		metadata.Destination.Fqdn = r.dns.Client().GetExactDomainFromHosts(ctx, metadata.Destination.Fqdn, false)
+		strategy := action.Strategy
+		if strategy == C.DomainStrategyAsIS {
+			strategy = r.dns.DefaultDomainStrategy()
+		}
+		if responseAddrs := r.dns.Client().GetAddrsFromHosts(ctx, metadata.Destination.Fqdn, strategy, false); len(responseAddrs) > 0 {
+			metadata.DestinationAddresses = responseAddrs
+		} else {
+			var transport adapter.DNSTransport
+			if action.Server != "" {
+				var loaded bool
+				transport, loaded = r.dnsTransport.Transport(action.Server)
+				if !loaded {
+					return E.New("DNS server not found: ", action.Server)
+				}
 			}
+			addresses, err := r.dns.Lookup(adapter.WithContext(ctx, metadata), metadata.Destination.Fqdn, adapter.DNSQueryOptions{
+				Transport: transport,
+				Strategy:  action.Strategy,
+			})
+			if err != nil {
+				return err
+			}
+			metadata.DestinationAddresses = addresses
+			r.logger.DebugContext(ctx, "resolved [", strings.Join(F.MapToString(metadata.DestinationAddresses), " "), "]")
 		}
-		addresses, err := r.dns.Lookup(adapter.WithContext(ctx, metadata), metadata.Destination.Fqdn, adapter.DNSQueryOptions{
-			Transport: transport,
-			Strategy:  action.Strategy,
-		})
-		if err != nil {
-			return err
-		}
-		metadata.DestinationAddresses = addresses
-		r.logger.DebugContext(ctx, "resolved [", strings.Join(F.MapToString(metadata.DestinationAddresses), " "), "]")
 		if metadata.Destination.IsIPv4() {
 			metadata.IPVersion = 4
 		} else if metadata.Destination.IsIPv6() {

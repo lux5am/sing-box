@@ -134,6 +134,12 @@ type OutboundGroup interface {
 	UpdateOutbounds(tag string) error
 }
 
+type FallbackGroup interface {
+	OutboundGroup
+	URLTest(ctx context.Context) (map[string]uint16, error)
+	PerformUpdateCheck(tag string, force bool)
+}
+
 type URLTestGroup interface {
 	OutboundGroup
 	URLTest(ctx context.Context) (map[string]uint16, error)

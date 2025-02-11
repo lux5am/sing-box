@@ -79,6 +79,8 @@ func proxyInfo(server *Server, detour adapter.Outbound) *badjson.JSONObject {
 	if group, isGroup := detour.(adapter.OutboundGroup); isGroup {
 		if urltestGroup, isURLTest := group.(adapter.URLTestGroup); isURLTest {
 			urltestGroup.PerformUpdateCheck("", true)
+		} else if fallbackGroup, isFallback := group.(adapter.FallbackGroup); isFallback {
+			fallbackGroup.PerformUpdateCheck("", true)
 		}
 		info.Put("now", group.Now())
 		info.Put("all", group.All())
@@ -171,16 +173,21 @@ func updateProxy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	proxy := r.Context().Value(CtxKeyProxy).(adapter.Outbound)
-	selector, ok := proxy.(*group.Selector)
-	if !ok {
+	if selectorGroup, ok := proxy.(*group.Selector); ok {
+		if !selectorGroup.SelectOutbound(req.Name) {
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, newError("Selector update error: not found"))
+			return
+		}
+	} else if fallbackGroup, ok := proxy.(*group.Fallback); ok {
+		if !fallbackGroup.SelectOutbound(req.Name) {
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, newError("Fallback update error: not found"))
+			return
+		}
+	} else {
 		render.Status(r, http.StatusBadRequest)
 		render.JSON(w, r, newError("Must be a Selector"))
-		return
-	}
-
-	if !selector.SelectOutbound(req.Name) {
-		render.Status(r, http.StatusBadRequest)
-		render.JSON(w, r, newError("Selector update error: not found"))
 		return
 	}
 

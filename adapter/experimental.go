@@ -157,6 +157,13 @@ type OutboundGroup interface {
 	UpdateOutbounds(tag string) error
 }
 
+type FallbackGroup interface {
+	OutboundGroup
+	URLTest(ctx context.Context) (map[string]uint16, error)
+	RefreshProviderSelected(tag string)
+	PerformUpdateCheck()
+}
+
 type URLTestGroup interface {
 	OutboundGroup
 	URLTest(ctx context.Context) (map[string]uint16, error)

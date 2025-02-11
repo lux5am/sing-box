@@ -203,6 +203,7 @@ nav:
           - DNS: configuration/outbound/dns.md
           - Selector: configuration/outbound/selector.md
           - URLTest: configuration/outbound/urltest.md
+          - Fallback: configuration/outbound/fallback.md
       - Outbound Provider:
           - configuration/provider/index.md
           - Local: configuration/provider/local.md

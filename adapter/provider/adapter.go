@@ -425,6 +425,8 @@ func (p *myProviderAdapter) refreshURLTestSelected(router adapter.Router) {
 	for _, outbound := range p.router.OutboundManager().Outbounds() {
 		if group, ok := outbound.(adapter.URLTestGroup); ok {
 			group.PerformUpdateCheck(p.tag, false)
+		} else if group, ok := outbound.(adapter.FallbackGroup); ok {
+			group.PerformUpdateCheck(p.tag, false)
 		}
 	}
 }

@@ -154,6 +154,7 @@ Only allowed after a preceding top-level `evaluate` rule. If the action is reach
 
 - `default`: Reply with REFUSED.
 - `drop`: Drop the request.
+- `null-ip`: Reply with unspecified ip address(`0.0.0.0` or `::`).
 
 `default` will be used by default.
 

@@ -39,4 +39,5 @@ const (
 const (
 	RuleActionRejectMethodDefault = "default"
 	RuleActionRejectMethodDrop    = "drop"
+	RuleActionRejectMethodNullIP  = "null-ip"
 )

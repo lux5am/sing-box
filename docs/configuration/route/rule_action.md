@@ -60,6 +60,7 @@ For non-tun connections and already established connections, will just be closed
 
 - `default`: Reply with TCP RST for TCP connections, and ICMP port unreachable for UDP packets.
 - `drop`: Drop packets.
+- `null-ip`: Reply with unspecified ip address(`0.0.0.0` or `::`).
 
 #### no_drop
 

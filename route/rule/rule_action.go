@@ -329,6 +329,8 @@ func (r *RuleActionReject) Error(ctx context.Context) error {
 		returnErr = &RejectedError{syscall.ECONNREFUSED}
 	case C.RuleActionRejectMethodDrop:
 		return &RejectedError{tun.ErrDrop}
+	case C.RuleActionRejectMethodNullIP:
+		return nil
 	default:
 		panic(F.ToString("unknown reject method: ", r.Method))
 	}

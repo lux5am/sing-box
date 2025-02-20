@@ -292,6 +292,7 @@ func (r *RejectActionOptions) UnmarshalJSON(bytes []byte) error {
 		r.Method = C.RuleActionRejectMethodDefault
 	case C.RuleActionRejectMethodDrop:
 	case C.RuleActionRejectMethodReply:
+	case C.RuleActionRejectMethodNullIP:
 	default:
 		return E.New("unknown reject method: " + r.Method)
 	}

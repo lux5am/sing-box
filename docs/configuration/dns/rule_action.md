@@ -83,6 +83,7 @@ Will overrides `dns.client_subnet`.
 
 - `default`: Reply with REFUSED.
 - `drop`: Drop the request.
+- `null-ip`: Reply with unspecified ip address(`0.0.0.0` or `::`).
 
 `default` will be used by default.
 

@@ -573,6 +573,17 @@ func dnsRefusedResponse(message *mDNS.Msg) *mDNS.Msg {
 	}
 }
 
+func dnsNullIPResponse(message *mDNS.Msg) *mDNS.Msg {
+	switch message.Question[0].Qtype {
+	case mDNS.TypeA:
+		return FixedResponse(message.Id, message.Question[0], []netip.Addr{netip.IPv4Unspecified()}, 0)
+	case mDNS.TypeAAAA:
+		return FixedResponse(message.Id, message.Question[0], []netip.Addr{netip.IPv6Unspecified()}, 0)
+	default:
+		return FixedResponse(message.Id, message.Question[0], nil, 0)
+	}
+}
+
 func (r *Router) finalizeExchangeOptions(options adapter.DNSQueryOptions) adapter.DNSQueryOptions {
 	if options.Strategy == C.DomainStrategyAsIS {
 		options.Strategy = r.defaultDomainStrategy
@@ -754,6 +765,11 @@ func (r *Router) walkDNSRules(ctx context.Context, rules []adapter.DNSRule, mess
 					rejectAction: action,
 					err:          R.ErrDrop,
 				}, nil
+			case C.RuleActionRejectMethodNullIP:
+				return exchangeWithRulesResult{
+					response:     dnsNullIPResponse(message),
+					rejectAction: action,
+				}, nil
 			}
 		case *R.RuleActionPredefined:
 			if len(state.armedRules) > 0 {
@@ -891,6 +907,11 @@ func (r *Router) sweepArmedDNSRules(ctx context.Context, message *mDNS.Msg, stat
 				return exchangeWithRulesResult{
 					rejectAction: action,
 					err:          R.ErrDrop,
+				}, nil, true
+			case C.RuleActionRejectMethodNullIP:
+				return exchangeWithRulesResult{
+					response:     dnsNullIPResponse(message),
+					rejectAction: action,
 				}, nil, true
 			}
 		case *R.RuleActionPredefined:
@@ -1163,6 +1184,8 @@ func (r *Router) exchangeLegacy(ctx context.Context, exchangeCtx *dnsExchangeCon
 					}, nil, nil
 				case C.RuleActionRejectMethodDrop:
 					return nil, nil, R.ErrDrop
+				case C.RuleActionRejectMethodNullIP:
+					return dnsNullIPResponse(message), nil, nil
 				}
 			case *R.RuleActionPredefined:
 				return action.Response(message), nil, nil

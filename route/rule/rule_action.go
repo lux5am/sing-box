@@ -379,7 +379,7 @@ func (r *RuleActionReject) Error(ctx context.Context) error {
 		returnErr = &RejectedError{tun.ErrReset}
 	case C.RuleActionRejectMethodDrop:
 		return &RejectedError{tun.ErrDrop}
-	case C.RuleActionRejectMethodReply:
+	case C.RuleActionRejectMethodReply, C.RuleActionRejectMethodNullIP:
 		return nil
 	default:
 		panic(F.ToString("unknown reject method: ", r.Method))

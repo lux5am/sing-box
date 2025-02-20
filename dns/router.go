@@ -505,6 +505,20 @@ func (r *Router) exchangeWithRules(ctx context.Context, rules []adapter.DNSRule,
 					rejectAction: action,
 					err:          tun.ErrDrop,
 				}
+			case C.RuleActionRejectMethodNullIP:
+				var response *mDNS.Msg
+				switch message.Question[0].Qtype {
+				case mDNS.TypeA:
+					response = FixedResponse(message.Id, message.Question[0], []netip.Addr{netip.IPv4Unspecified()}, 0)
+				case mDNS.TypeAAAA:
+					response = FixedResponse(message.Id, message.Question[0], []netip.Addr{netip.IPv6Unspecified()}, 0)
+				default:
+					response = FixedResponse(message.Id, message.Question[0], nil, 0)
+				}
+				return exchangeWithRulesResult{
+					response:     response,
+					rejectAction: action,
+				}
 			}
 		case *R.RuleActionPredefined:
 			return exchangeWithRulesResult{
@@ -695,6 +709,15 @@ func (r *Router) Exchange(ctx context.Context, message *mDNS.Msg, options adapte
 						}, nil
 					case C.RuleActionRejectMethodDrop:
 						return nil, tun.ErrDrop
+					case C.RuleActionRejectMethodNullIP:
+						switch message.Question[0].Qtype {
+						case mDNS.TypeA:
+							return FixedResponse(message.Id, message.Question[0], []netip.Addr{netip.IPv4Unspecified()}, 0), nil
+						case mDNS.TypeAAAA:
+							return FixedResponse(message.Id, message.Question[0], []netip.Addr{netip.IPv6Unspecified()}, 0), nil
+						default:
+							return FixedResponse(message.Id, message.Question[0], nil, 0), nil
+						}
 					}
 				case *R.RuleActionPredefined:
 					err = nil

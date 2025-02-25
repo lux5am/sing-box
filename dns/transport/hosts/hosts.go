@@ -45,7 +45,7 @@ func (t *Transport) Reset() {
 
 func (t *Transport) Exchange(ctx context.Context, message *mDNS.Msg) (*mDNS.Msg, error) {
 	question := message.Question[0]
-	domain := dns.FqdnToDomain(question.Name)
+	domain := mDNS.CanonicalName(dns.FqdnToDomain(question.Name))
 	if question.Qtype == mDNS.TypeA || question.Qtype == mDNS.TypeAAAA {
 		for _, file := range t.files {
 			addresses := file.Lookup(domain)

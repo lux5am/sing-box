@@ -197,6 +197,58 @@ func (c *Client) UpdateDnsCacheToContext(ctx context.Context) context.Context {
 	return context.WithValue(ctx, (*updateDnsCacheContext)(nil), struct{}{})
 }
 
+func isSimpleRequest(message *dns.Msg) bool {
+	if len(message.Question) > 1 || len(message.Ns) > 0 {
+		return false
+	}
+	if mopt := message.IsEdns0(); mopt != nil {
+		if mopt.Do() {
+			return false
+		}
+		for _, option := range mopt.Option {
+			switch option.(type) {
+			// case *dns.EDNS0_SUBNET:
+				// return false
+			case *dns.EDNS0_LOCAL:
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func rebuildEdns0(message, response *dns.Msg) {
+	if mopt := message.IsEdns0(); mopt != nil {
+		ropt := response.IsEdns0()
+		if ropt == nil {
+			ropt = &dns.OPT{
+				Hdr: dns.RR_Header{
+					Name:   ".",
+					Rrtype: dns.TypeOPT,
+				},
+			}
+			response.Extra = append(response.Extra, ropt)
+		}
+		ropt.SetVersion(mopt.Version())
+		ropt.SetUDPSize(mopt.UDPSize())
+		ropt.SetExtendedRcode(uint16(mopt.ExtendedRcode()))
+		// ropt.SetDo(mopt.Do())
+		// ropt.SetZ(mopt.Z())
+		for _, option := range mopt.Option {
+			switch opt := option.(type) {
+			case *dns.EDNS0_SUBNET:
+				continue
+			case *dns.EDNS0_COOKIE:
+				continue
+			case *dns.EDNS0_PADDING:
+				continue
+			default:
+				ropt.Option = append(ropt.Option, opt)
+			}
+		}
+	}
+}
+
 func (c *Client) Exchange(ctx context.Context, transport adapter.DNSTransport, message *dns.Msg, options adapter.DNSQueryOptions, responseChecker func(responseAddrs []netip.Addr) bool) (*dns.Msg, error) {
 	if len(message.Question) == 0 {
 		if c.logger != nil {
@@ -261,16 +313,13 @@ func (c *Client) Exchange(ctx context.Context, transport adapter.DNSTransport, m
 	if clientSubnet.IsValid() {
 		message = SetClientSubnet(message, clientSubnet)
 	}
-	isSimpleRequest := len(message.Question) == 1 &&
-		len(message.Ns) == 0 &&
-		len(message.Extra) == 0 &&
-		!options.ClientSubnet.IsValid()
-	disableCache := !isSimpleRequest || c.disableCache || options.DisableCache
+	disableCache := !isSimpleRequest(message) || c.disableCache || options.DisableCache
 	if !disableCache && !isUpdatingCache {
 		response, ttl := c.loadResponse(question, transport)
 		if response != nil {
 			logCachedResponse(c.logger, ctx, response, ttl)
 			response.Id = message.Id
+			rebuildEdns0(message, response)
 			return response, nil
 		}
 	}
@@ -394,7 +443,19 @@ func (c *Client) Exchange(ctx context.Context, transport adapter.DNSTransport, m
 	}
 	response.Authoritative = true
 	if !disableCache {
-		c.storeCache(transport, question, response, timeToLive)
+		resp := response
+		if opt := resp.IsEdns0(); opt != nil {
+			res := *response
+			// remove opt records
+			res.Extra = []dns.RR{}
+			for _, rr := range response.Extra {
+				if rr.Header().Rrtype != dns.TypeOPT {
+					res.Extra = append(res.Extra, rr)
+				}
+			}
+			resp = &res
+		}
+		c.storeCache(transport, question, resp, timeToLive)
 	}
 	response.Id = messageId
 	requestEDNSOpt := message.IsEdns0()
@@ -518,6 +579,7 @@ func (c *Client) ExchangeCache(ctx context.Context, message *dns.Msg) (*dns.Msg,
 	}
 	logCachedResponse(c.logger, ctx, response, ttl)
 	response.Id = message.Id
+	rebuildEdns0(message, response)
 	return response, true, c.useStaleCache && ttl == 0
 }
 

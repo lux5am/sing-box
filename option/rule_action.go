@@ -268,8 +268,9 @@ func (d *DirectActionOptions) UnmarshalJSON(data []byte) error {
 }
 
 type _RejectActionOptions struct {
-	Method string `json:"method,omitempty"`
-	NoDrop bool   `json:"no_drop,omitempty"`
+	Method     string  `json:"method,omitempty"`
+	NoDrop     bool    `json:"no_drop,omitempty"`
+	RewriteTTL *uint32 `json:"rewrite_ttl,omitempty"`
 }
 
 type RejectActionOptions _RejectActionOptions

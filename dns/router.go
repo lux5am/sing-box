@@ -573,14 +573,18 @@ func dnsRefusedResponse(message *mDNS.Msg) *mDNS.Msg {
 	}
 }
 
-func dnsNullIPResponse(message *mDNS.Msg) *mDNS.Msg {
+func dnsNullIPResponse(message *mDNS.Msg, rewriteTTL *uint32) *mDNS.Msg {
+	var ttl uint32
+	if rewriteTTL != nil {
+		ttl = *rewriteTTL
+	}
 	switch message.Question[0].Qtype {
 	case mDNS.TypeA:
-		return FixedResponse(message.Id, message.Question[0], []netip.Addr{netip.IPv4Unspecified()}, 0)
+		return FixedResponse(message.Id, message.Question[0], []netip.Addr{netip.IPv4Unspecified()}, ttl)
 	case mDNS.TypeAAAA:
-		return FixedResponse(message.Id, message.Question[0], []netip.Addr{netip.IPv6Unspecified()}, 0)
+		return FixedResponse(message.Id, message.Question[0], []netip.Addr{netip.IPv6Unspecified()}, ttl)
 	default:
-		return FixedResponse(message.Id, message.Question[0], nil, 0)
+		return FixedResponse(message.Id, message.Question[0], nil, ttl)
 	}
 }
 
@@ -767,7 +771,7 @@ func (r *Router) walkDNSRules(ctx context.Context, rules []adapter.DNSRule, mess
 				}, nil
 			case C.RuleActionRejectMethodNullIP:
 				return exchangeWithRulesResult{
-					response:     dnsNullIPResponse(message),
+					response:     dnsNullIPResponse(message, action.RewriteTTL),
 					rejectAction: action,
 				}, nil
 			}
@@ -910,7 +914,7 @@ func (r *Router) sweepArmedDNSRules(ctx context.Context, message *mDNS.Msg, stat
 				}, nil, true
 			case C.RuleActionRejectMethodNullIP:
 				return exchangeWithRulesResult{
-					response:     dnsNullIPResponse(message),
+					response:     dnsNullIPResponse(message, action.RewriteTTL),
 					rejectAction: action,
 				}, nil, true
 			}
@@ -1189,7 +1193,7 @@ func (r *Router) exchangeLegacy(ctx context.Context, exchangeCtx *dnsExchangeCon
 				case C.RuleActionRejectMethodDrop:
 					return nil, nil, R.ErrDrop
 				case C.RuleActionRejectMethodNullIP:
-					return dnsNullIPResponse(message), nil, nil
+					return dnsNullIPResponse(message, action.RewriteTTL), nil, nil
 				}
 			case *R.RuleActionPredefined:
 				return action.Response(message), nil, nil

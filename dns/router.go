@@ -259,6 +259,10 @@ func (r *Router) Exchange(ctx context.Context, message *mDNS.Msg, options adapte
 			if rule != nil {
 				switch action := rule.Action().(type) {
 				case *R.RuleActionReject:
+					var ttl uint32
+					if action.RewriteTTL != nil {
+						ttl = *action.RewriteTTL
+					}
 					switch action.Method {
 					case C.RuleActionRejectMethodDefault:
 						return &mDNS.Msg{
@@ -274,11 +278,11 @@ func (r *Router) Exchange(ctx context.Context, message *mDNS.Msg, options adapte
 					case C.RuleActionRejectMethodNullIP:
 						switch message.Question[0].Qtype {
 						case mDNS.TypeA:
-							return FixedResponse(message.Id, message.Question[0], []netip.Addr{netip.IPv4Unspecified()}, 0), nil
+							return FixedResponse(message.Id, message.Question[0], []netip.Addr{netip.IPv4Unspecified()}, ttl), nil
 						case mDNS.TypeAAAA:
-							return FixedResponse(message.Id, message.Question[0], []netip.Addr{netip.IPv6Unspecified()}, 0), nil
+							return FixedResponse(message.Id, message.Question[0], []netip.Addr{netip.IPv6Unspecified()}, ttl), nil
 						default:
-							return FixedResponse(message.Id, message.Question[0], nil, 0), nil
+							return FixedResponse(message.Id, message.Question[0], nil, ttl), nil
 						}
 					}
 				case *R.RuleActionPredefined:

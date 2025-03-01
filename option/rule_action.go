@@ -291,6 +291,7 @@ func (d DirectActionOptions) Descriptions() []string {
 type _RejectActionOptions struct {
 	Method string `json:"method,omitempty" enum:"default,drop,reply"`
 	NoDrop bool   `json:"no_drop,omitempty"`
+	RewriteTTL *uint32 `json:"rewrite_ttl,omitempty"`
 }
 
 type RejectActionOptions _RejectActionOptions

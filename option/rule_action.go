@@ -235,6 +235,7 @@ func (r *DNSRouteOptionsActionOptions) UnmarshalJSON(data []byte) error {
 type _RejectActionOptions struct {
 	Method string `json:"method,omitempty" enum:"default,drop,reply"`
 	NoDrop bool   `json:"no_drop,omitempty"`
+	RewriteTTL *uint32 `json:"rewrite_ttl,omitempty"`
 }
 
 type RejectActionOptions _RejectActionOptions

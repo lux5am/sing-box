@@ -154,9 +154,10 @@ func NewDNSRuleAction(logger logger.ContextLogger, action option.DNSRuleAction) 
 		}
 	case C.RuleActionTypeReject:
 		return &RuleActionReject{
-			Method: action.RejectOptions.Method,
-			NoDrop: action.RejectOptions.NoDrop,
-			logger: logger,
+			Method:     action.RejectOptions.Method,
+			NoDrop:     action.RejectOptions.NoDrop,
+			RewriteTTL: action.RejectOptions.RewriteTTL,
+			logger:     logger,
 		}
 	case C.RuleActionTypePredefined:
 		return &RuleActionPredefined{
@@ -395,6 +396,7 @@ func IsBypassed(err error) bool {
 type RuleActionReject struct {
 	Method      string
 	NoDrop      bool
+	RewriteTTL  *uint32
 	logger      logger.ContextLogger
 	dropAccess  sync.Mutex
 	dropCounter []time.Time

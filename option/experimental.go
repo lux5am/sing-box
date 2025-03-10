@@ -8,6 +8,7 @@ type ExperimentalOptions struct {
 	V2RayAPI  *V2RayAPIOptions  `json:"v2ray_api,omitempty"`
 	Debug     *DebugOptions     `json:"debug,omitempty"`
 	Timeout   *TimeoutOptions   `json:"timeout,omitempty"`
+	Constant  *ConstantOptions  `json:"constant,omitempty"`
 }
 
 type CacheFileOptions struct {
@@ -77,4 +78,8 @@ type TimeoutOptions struct {
 	ProtocolSTUN               badoption.Duration `json:"protocol_stun,omitempty"`
 	ProtocolQUIC               badoption.Duration `json:"protocol_quic,omitempty"`
 	ProtocolDTLS               badoption.Duration `json:"protocol_dtls,omitempty"`
+}
+
+type ConstantOptions struct {
+	DefaultDNSTTL uint32 `json:"default_dns_ttl,omitempty"`
 }

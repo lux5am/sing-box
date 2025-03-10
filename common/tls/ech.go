@@ -248,7 +248,7 @@ func (s *ECHClientConfig) SetECHConfigList(echConfigList []byte) {
 	defer s.state.access.Unlock()
 	s.state.entries[queryServerName] = echClientEntry{
 		configList: echConfigList,
-		expireAt:   time.Now().Add(C.DefaultDNSTTL * time.Second),
+		expireAt:   time.Now().Add(time.Duration(C.DefaultDNSTTL) * time.Second),
 	}
 }
 

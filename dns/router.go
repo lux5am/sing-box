@@ -1148,7 +1148,7 @@ func (r *Router) recordReverseMapping(message *mDNS.Msg, response *mDNS.Msg, tra
 			publicName := echPublicName(record)
 			if publicName != "" {
 				foundPublicName = true
-				publicNameLifetime := max(lifetime, C.DefaultDNSTTL*time.Second)
+				publicNameLifetime := max(lifetime, time.Duration(C.DefaultDNSTTL)*time.Second)
 				mappedName, expireAt, loaded := r.dnsECHPublicNames.GetWithLifetime(domain)
 				if !loaded || mappedName != publicName || time.Until(expireAt) < publicNameLifetime {
 					r.dnsECHPublicNames.AddWithLifetime(domain, publicName, publicNameLifetime)

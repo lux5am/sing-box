@@ -13,11 +13,15 @@ type ExperimentalOptions struct {
 	V2RayAPI  *V2RayAPIOptions  `json:"v2ray_api,omitempty"`
 	Debug     *DebugOptions     `json:"debug,omitempty"`
 	Timeout   *TimeoutOptions   `json:"timeout,omitempty"`
+	Constant  *ConstantOptions  `json:"constant,omitempty"`
 }
 
 func (o *ExperimentalOptions) Apply() {
 	if o.Timeout != nil {
 		o.Timeout.Apply()
+	}
+	if o.Constant != nil {
+		o.Constant.Apply()
 	}
 }
 
@@ -167,5 +171,15 @@ func (o *TimeoutOptions) Apply() {
 	}
 	if o.ProtocolDTLS != 0 {
 		C.ProtocolTimeouts[C.ProtocolDTLS] = time.Duration(o.ProtocolDTLS)
+	}
+}
+
+type ConstantOptions struct {
+	DefaultDNSTTL uint32 `json:"default_dns_ttl,omitempty"`
+}
+
+func (o *ConstantOptions) Apply() {
+	if o.DefaultDNSTTL != 0 {
+		C.DefaultDNSTTL = o.DefaultDNSTTL
 	}
 }

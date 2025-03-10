@@ -1,7 +1,7 @@
 package constant
 
-const (
-	DefaultDNSTTL = 600
+var (
+	DefaultDNSTTL uint32 = 600
 )
 
 type DomainStrategy = uint8

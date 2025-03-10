@@ -210,6 +210,11 @@ func New(options Options) (*Box, error) {
 			C.ProtocolTimeouts[C.ProtocolDTLS] = time.Duration(experimentalOptions.Timeout.ProtocolDTLS)
 		}
 	}
+	if experimentalOptions.Constant != nil {
+		if experimentalOptions.Constant.DefaultDNSTTL != 0 {
+			C.DefaultDNSTTL = experimentalOptions.Constant.DefaultDNSTTL
+		}
+	}
 
 	var services []adapter.LifecycleService
 	certificateOptions := common.PtrValueOrDefault(options.Certificate)

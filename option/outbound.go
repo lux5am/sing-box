@@ -127,9 +127,10 @@ type AbstractDialerOptions struct {
 	ConnectTimeout             badoption.Duration                `json:"connect_timeout,omitempty"`
 	TCPFastOpen                bool                              `json:"tcp_fast_open,omitempty"`
 	TCPMultiPath               bool                              `json:"tcp_multi_path,omitempty"`
-	DisableTCPKeepAlive        bool                              `json:"disable_tcp_keep_alive,omitempty"`
+	DisableTCPKeepAlive        *bool                             `json:"disable_tcp_keep_alive,omitempty"`
 	TCPKeepAlive               badoption.Duration                `json:"tcp_keep_alive,omitempty"`
 	TCPKeepAliveInterval       badoption.Duration                `json:"tcp_keep_alive_interval,omitempty"`
+	TCPKeepAliveCount          int                               `json:"tcp_keep_alive_count,omitempty"`
 	TCPKeepAliveSystemDefaults bool                              `json:"-"`
 	UDPBindPort                uint16                            `json:"-"`
 	UDPFragment                *bool                             `json:"udp_fragment,omitempty"`

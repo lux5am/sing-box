@@ -37,7 +37,11 @@ func (l *Listener) ListenTCP() (net.Listener, error) {
 	if l.listenOptions.ReuseAddr {
 		listenConfig.Control = control.Append(listenConfig.Control, control.ReuseAddr())
 	}
-	if l.listenOptions.DisableTCPKeepAlive {
+	disableTCPKeepAlive := C.DisableTCPKeepAlive
+	if l.listenOptions.DisableTCPKeepAlive != nil {
+		disableTCPKeepAlive = *l.listenOptions.DisableTCPKeepAlive
+	}
+	if disableTCPKeepAlive {
 		listenConfig.KeepAlive = -1
 		listenConfig.KeepAliveConfig.Enable = false
 	} else {
@@ -49,10 +53,15 @@ func (l *Listener) ListenTCP() (net.Listener, error) {
 		if keepInterval == 0 {
 			keepInterval = C.TCPKeepAliveInterval
 		}
+		keepCount := l.listenOptions.TCPKeepAliveCount
+		if keepCount == 0 {
+			keepCount = C.TCPKeepAliveCount
+		}
 		listenConfig.KeepAliveConfig = net.KeepAliveConfig{
 			Enable:   true,
 			Idle:     keepIdle,
 			Interval: keepInterval,
+			Count:    keepCount,
 		}
 	}
 	if l.listenOptions.TCPMultiPath {

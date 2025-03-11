@@ -3,6 +3,8 @@ package constant
 import "time"
 
 var (
+	DisableTCPKeepAlive        = false
+	TCPKeepAliveCount          = 9
 	TCPKeepAliveInitial        = 10 * time.Minute
 	TCPKeepAliveInterval       = 75 * time.Second
 	TCPConnectTimeout          = 5 * time.Second

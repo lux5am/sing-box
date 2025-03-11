@@ -4,6 +4,8 @@
 {
   "tcp_keep_alive_initial": 0,
   "tcp_keep_alive_interval": 0,
+  "tcp_keep_alive_count": 0,
+  "disable_tcp_keep_alive": false,
   "tcp_connect_timeout": 0,
   "tcp_timeout": 0,
   "read_payload_timeout": 0,

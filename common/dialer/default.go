@@ -157,7 +157,11 @@ func NewDefault(ctx context.Context, options option.DialerOptions) (*DefaultDial
 	} else {
 		dialer.Timeout = C.TCPConnectTimeout
 	}
-	if options.DisableTCPKeepAlive {
+	disableTCPKeepAlive := C.DisableTCPKeepAlive
+	if options.DisableTCPKeepAlive != nil {
+		disableTCPKeepAlive = *options.DisableTCPKeepAlive
+	}
+	if disableTCPKeepAlive {
 		dialer.KeepAlive = -1
 		dialer.KeepAliveConfig.Enable = false
 	} else if options.TCPKeepAliveSystemDefaults {
@@ -176,10 +180,15 @@ func NewDefault(ctx context.Context, options option.DialerOptions) (*DefaultDial
 		if keepInterval == 0 {
 			keepInterval = C.TCPKeepAliveInterval
 		}
+		keepCount := options.TCPKeepAliveCount
+		if keepCount == 0 {
+			keepCount = C.TCPKeepAliveCount
+		}
 		dialer.KeepAliveConfig = net.KeepAliveConfig{
 			Enable:   true,
 			Idle:     keepIdle,
 			Interval: keepInterval,
+			Count:    keepCount,
 		}
 	}
 	var udpFragment bool

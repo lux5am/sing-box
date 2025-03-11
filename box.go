@@ -161,6 +161,10 @@ func New(options Options) (*Box, error) {
 	}
 
 	if experimentalOptions.Timeout != nil {
+		C.DisableTCPKeepAlive = experimentalOptions.Timeout.DisableTCPKeepAlive
+		if experimentalOptions.Timeout.TCPKeepAliveCount != 0 {
+			C.TCPKeepAliveCount = experimentalOptions.Timeout.TCPKeepAliveCount
+		}
 		if experimentalOptions.Timeout.TCPKeepAliveInitial != 0 {
 			C.TCPKeepAliveInitial = time.Duration(experimentalOptions.Timeout.TCPKeepAliveInitial)
 		}

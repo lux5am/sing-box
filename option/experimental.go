@@ -57,6 +57,8 @@ type V2RayStatsServiceOptions struct {
 type TimeoutOptions struct {
 	TCPKeepAliveInitial        badoption.Duration `json:"tcp_keep_alive_initial,omitempty"`
 	TCPKeepAliveInterval       badoption.Duration `json:"tcp_keep_alive_interval,omitempty"`
+	TCPKeepAliveCount          int                `json:"tcp_keep_alive_count,omitempty"`
+	DisableTCPKeepAlive        bool               `json:"disable_tcp_keep_alive,omitempty"`
 	TCPConnectTimeout          badoption.Duration `json:"tcp_connect_timeout,omitempty"`
 	TCPTimeout                 badoption.Duration `json:"tcp_timeout,omitempty"`
 	ReadPayloadTimeout         badoption.Duration `json:"read_payload_timeout,omitempty"`

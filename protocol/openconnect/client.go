@@ -76,11 +76,16 @@ type clientState struct {
 
 func NewEndpoint(ctx context.Context, router adapter.Router, logger log.ContextLogger, tag string, options option.OpenConnectEndpointOptions) (adapter.Endpoint, error) {
 	tcpKeepAliveEnabled := options.TCPKeepAliveEnabled || options.TCPKeepAlive != 0 || options.TCPKeepAliveInterval != 0
-	if tcpKeepAliveEnabled && options.DisableTCPKeepAlive {
+	disableTCPKeepAlive := C.DisableTCPKeepAlive
+	if options.DisableTCPKeepAlive != nil {
+		disableTCPKeepAlive = *options.DisableTCPKeepAlive
+	}
+	if tcpKeepAliveEnabled && disableTCPKeepAlive {
 		return nil, E.New("tcp_keep_alive_enabled conflicts with disable_tcp_keep_alive")
 	}
 	if !tcpKeepAliveEnabled {
-		options.DisableTCPKeepAlive = true
+		disableTCPKeepAlive = true
+		options.DisableTCPKeepAlive = &disableTCPKeepAlive
 	} else if options.TCPKeepAlive == 0 && options.TCPKeepAliveInterval == 0 {
 		options.TCPKeepAliveSystemDefaults = true
 	}

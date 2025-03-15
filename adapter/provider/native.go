@@ -24,6 +24,7 @@ var (
 	trojanParser    = regexp.MustCompile(`^(.*?)@(.*?):(\d+)(?:(?:\/|\?|\/\?)(.*?))?(?:#(.*?))$`)
 	hysteriaParser  = regexp.MustCompile(`^(.*?):(\d+)(?:(?:\/|\?|\/\?)(.*?))?(?:#(.*?))?$`)
 	hysteria2Parser = regexp.MustCompile(`^(.+?)@(.+?)(?::(\d+))?(?:(?:\/|\?|\/\?)(.*?))?(?:#(.*?))?$`)
+	anytlsParser    = regexp.MustCompile(`^(.*?)@(.*?):(\d+)(?:(?:\/|\?|\/\?)(.*?))?(?:#(.*?))$`)
 )
 
 func newNativeURIParser(content string) ([]option.Outbound, error) {
@@ -57,6 +58,8 @@ func newNativeURIParser(content string) ([]option.Outbound, error) {
 			outbound, err = newHysteriaNativeParser(parsedProxy)
 		case "hy2", "hysteria2":
 			outbound, err = newHysteria2NativeParser(parsedProxy)
+		case "anytls":
+			outbound, err = newAnyTLSNativeParser(parsedProxy)
 		default:
 			continue
 		}
@@ -722,6 +725,55 @@ func newHysteria2NativeParser(content string) (option.Outbound, error) {
 		case "insecure", "skip-cert-verify":
 			if value == "1" || value == "true" {
 				TLSOptions.Insecure = true
+			}
+		}
+	}
+	options.TLS = &TLSOptions
+	outbound.Options = &options
+	return outbound, nil
+}
+
+func newAnyTLSNativeParser(content string) (option.Outbound, error) {
+	outbound := option.Outbound{
+		Type: C.TypeAnyTLS,
+	}
+	result := anytlsParser.FindStringSubmatch(content)
+	if len(result) == 0 {
+		return outbound, E.New("invalid anytls uri")
+	}
+	outbound.Tag = decodeURIComponent(result[5])
+	options := option.AnyTLSOutboundOptions{}
+	TLSOptions := option.OutboundTLSOptions{
+		Enabled: true,
+		ECH:     &option.OutboundECHOptions{},
+		UTLS:    &option.OutboundUTLSOptions{},
+		Reality: &option.OutboundRealityOptions{},
+	}
+	options.Server = result[2]
+	TLSOptions.ServerName = result[2]
+	options.ServerPort = stringToUint16(result[3])
+	options.Password = decodeURIComponent(result[1])
+	proxy := map[string]string{}
+	for _, addon := range strings.Split(result[4], "&") {
+		key, value := splitKeyValueWithEqual(addon)
+		proxy[key] = decodeURIComponent(value)
+	}
+	for key, value := range proxy {
+		switch key {
+		case "insecure":
+			if value == "1" || value == "true" {
+				TLSOptions.Insecure = true
+			}
+		case "sni":
+			TLSOptions.ServerName = value
+		case "alpn":
+			TLSOptions.ALPN = strings.Split(value, ",")
+		case "fp":
+			TLSOptions.UTLS.Enabled = true
+			TLSOptions.UTLS.Fingerprint = value
+		case "tfo", "tcp-fast-open", "tcp_fast_open":
+			if value == "1" || value == "true" {
+				options.TCPFastOpen = true
 			}
 		}
 	}

@@ -91,6 +91,10 @@ func (p *myProviderAdapter) overrideOutbounds(outbounds []option.Outbound) []opt
 			options := outbound.Options.(*option.LegacyWireGuardOutboundOptions)
 			options.DialerOptions = p.overrideDialerOption(options.DialerOptions, tags)
 			outbound.Options = options
+		case C.TypeAnyTLS:
+			options := outbound.Options.(*option.AnyTLSOutboundOptions)
+			options.DialerOptions = p.overrideDialerOption(options.DialerOptions, tags)
+			outbound.Options = options
 		case C.TypeShadowsocks:
 			options := outbound.Options.(*option.ShadowsocksOutboundOptions)
 			options.DialerOptions = p.overrideDialerOption(options.DialerOptions, tags)

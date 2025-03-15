@@ -388,6 +388,8 @@ func newClashParser(content string) ([]option.Outbound, error) {
 			outbound, err = newHysteria2ClashParser(proxy)
 		case "wireguard":
 			outbound, err = newWireGuardClashParser(proxy)
+		case "anytls":
+			outbound, err = newAnyTLSClashParser(proxy)
 		default:
 			continue
 		}
@@ -1064,6 +1066,38 @@ func newWireGuardClashParser(proxy map[string]any) (option.Outbound, error) {
 			options.Peers = peers
 		}
 	}
+	options.DialerOptions = convertDialerOption(proxy)
+	outbound.Options = &options
+	return outbound, nil
+}
+
+func newAnyTLSClashParser(proxy map[string]any) (option.Outbound, error) {
+	outbound := option.Outbound{
+		Type: C.TypeAnyTLS,
+	}
+	options := option.AnyTLSOutboundOptions{}
+	if name, exists := proxy["name"].(string); exists {
+		outbound.Tag = name
+	}
+	if server, exists := proxy["server"].(string); exists {
+		options.Server = server
+	}
+	if port, exists := proxy["port"]; exists {
+		options.ServerPort = stringToUint16(fmt.Sprint(port))
+	}
+	if password, exists := proxy["password"].(string); exists {
+		options.Password = password
+	}
+	if idleSessionCheckInterval, exists := proxy["idle-session-check-interval"].(int); exists {
+		options.IdleSessionCheckInterval = badoption.Duration(time.Duration(idleSessionCheckInterval) * time.Second)
+	}
+	if idleSessionTimeout, exists := proxy["idle-session-timeout"].(int); exists {
+		options.IdleSessionTimeout = badoption.Duration(time.Duration(idleSessionTimeout) * time.Second)
+	}
+	if minIdleSession, exists := proxy["min-idle-session"].(int); exists {
+		options.MinIdleSession = minIdleSession
+	}
+	options.TLS = convertTLSOptions(proxy)
 	options.DialerOptions = convertDialerOption(proxy)
 	outbound.Options = &options
 	return outbound, nil

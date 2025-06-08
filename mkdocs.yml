@@ -204,6 +204,7 @@ nav:
           - Selector: configuration/outbound/selector.md
           - URLTest: configuration/outbound/urltest.md
           - Fallback: configuration/outbound/fallback.md
+          - LoadBalance: configuration/outbound/loadbalance.md
       - Outbound Provider:
           - configuration/provider/index.md
           - Local: configuration/provider/local.md

@@ -39,6 +39,7 @@
 | `selector`     | [Selector](./selector/)         |
 | `urltest`      | [URLTest](./urltest/)           |
 | `fallback`     | [Fallback](./fallback/)         |
+| `loadbalance`  | [LoadBalance](./loadbalance/)   |
 | `naive`        | [NaiveProxy](./naive/)          |
 
 #### tag

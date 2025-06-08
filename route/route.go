@@ -181,6 +181,9 @@ func resolveOutbound(outbound adapter.Outbound, network string) ([]adapter.Outbo
 		if !isGroup {
 			break
 		}
+		if _, isLoadBalanceGroup := outbound.(adapter.LoadBalanceGroup); isLoadBalanceGroup {
+			break
+		}
 		outbound = group.Selected(network)
 		if outbound == nil {
 			return nil, E.New(strings.ToUpper(network), " is not supported by outbound: ", group.Tag())

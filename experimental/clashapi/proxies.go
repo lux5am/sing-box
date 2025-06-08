@@ -81,6 +81,8 @@ func proxyInfo(server *Server, detour adapter.Outbound) *badjson.JSONObject {
 			urltestGroup.PerformUpdateCheck("", true)
 		} else if fallbackGroup, isFallback := group.(adapter.FallbackGroup); isFallback {
 			fallbackGroup.PerformUpdateCheck("", true)
+		} else if loadBalanceGroup, isLoadBalance := group.(adapter.LoadBalanceGroup); isLoadBalance {
+			loadBalanceGroup.PerformUpdateCheck("", true)
 		}
 		info.Put("now", group.Now())
 		info.Put("all", group.All())

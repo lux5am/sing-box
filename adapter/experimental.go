@@ -155,6 +155,11 @@ type OutboundGroup interface {
 	UpdateOutbounds(tag string) error
 }
 
+type LoadBalanceGroup interface {
+	OutboundGroup
+	URLTest(ctx context.Context) (map[string]uint16, error)
+}
+
 type FallbackGroup interface {
 	OutboundGroup
 	URLTest(ctx context.Context) (map[string]uint16, error)

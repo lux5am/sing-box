@@ -66,6 +66,12 @@ func (t TrackerMetadata) MarshalJSON() ([]byte, error) {
 	} else {
 		rule = "final"
 	}
+	chains := t.Chain
+	if t.OutboundType == C.TypeLoadBalance {
+		chains = make([]string, len(t.Chain)+1)
+		chains[0] = t.Metadata.GetRealOutbound()
+		copy(chains[1:], t.Chain)
+	}
 	return json.Marshal(map[string]any{
 		"id": t.ID,
 		"metadata": map[string]any{
@@ -84,7 +90,7 @@ func (t TrackerMetadata) MarshalJSON() ([]byte, error) {
 		"upload":      t.Upload.Load(),
 		"download":    t.Download.Load(),
 		"start":       t.CreatedAt,
-		"chains":      t.Chain,
+		"chains":      chains,
 		"rule":        rule,
 		"rulePayload": "",
 	})

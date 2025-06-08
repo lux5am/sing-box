@@ -47,7 +47,8 @@ func (a *Adapter) Port() int {
 		C.TypeTor,
 		C.TypeSelector,
 		C.TypeURLTest,
-		C.TypeFallback:
+		C.TypeFallback,
+		C.TypeLoadBalance:
 		return 65536
 	default:
 		return int(a.port)

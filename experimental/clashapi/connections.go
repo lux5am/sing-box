@@ -83,6 +83,12 @@ func (c connectionObject) MarshalJSON() ([]byte, error) {
 	} else {
 		rule = "final"
 	}
+	chains := c.Chain
+	if c.OutboundType == C.TypeLoadBalance {
+		chains = make([]string, len(c.Chain)+1)
+		chains[0] = c.Metadata.GetRealOutbound()
+		copy(chains[1:], c.Chain)
+	}
 	return json.Marshal(map[string]any{
 		"id": c.ID,
 		"metadata": map[string]any{
@@ -101,7 +107,7 @@ func (c connectionObject) MarshalJSON() ([]byte, error) {
 		"upload":      c.Upload.Load(),
 		"download":    c.Download.Load(),
 		"start":       c.CreatedAt,
-		"chains":      c.Chain,
+		"chains":      chains,
 		"rule":        rule,
 		"rulePayload": "",
 	})

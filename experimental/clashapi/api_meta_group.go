@@ -86,6 +86,8 @@ func getGroupDelay(server *Server) func(w http.ResponseWriter, r *http.Request) 
 			result, err = urlTestGroup.URLTest(ctx)
 		} else if fallbackGroup, isFallbackGroup := outboundGroup.(adapter.FallbackGroup); isFallbackGroup {
 			result, err = fallbackGroup.URLTest(ctx)
+		} else if loadBalanceGroup, isLoadBalanceGroup := outboundGroup.(adapter.LoadBalanceGroup); isLoadBalanceGroup {
+			result, err = loadBalanceGroup.URLTest(ctx)
 		} else {
 			outbounds := common.FilterNotNil(common.Map(outboundGroup.All(), func(it string) adapter.Outbound {
 				itOutbound, _ := server.provider.OutboundWithProvider(it)

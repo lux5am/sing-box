@@ -102,18 +102,22 @@ func (m *ConnectionManager) NewConnection(ctx context.Context, this N.Dialer, co
 		remoteConn, err = this.DialContext(ctx, N.NetworkTCP, metadata.Destination)
 	}
 	if err != nil {
+		var dialerString string
+		if outbound, isOutbound := this.(adapter.Outbound); isOutbound {
+			if outbound.Type() == C.TypeBlock {
+				N.CloseOnHandshakeFailure(conn, onClose, err)
+				return
+			}
+			dialerString = " using outbound/" + outbound.Type() + "[" + outbound.Tag() + "]"
+			if outbound.Type() == C.TypeLoadBalance {
+				dialerString += "[" + metadata.GetRealOutbound() + "]"
+			}
+		}
 		var remoteString string
 		if len(metadata.DestinationAddresses) > 0 {
 			remoteString = "[" + strings.Join(common.Map(metadata.DestinationAddresses, netip.Addr.String), ",") + "]"
 		} else {
 			remoteString = metadata.Destination.String()
-		}
-		var dialerString string
-		if outbound, isOutbound := this.(adapter.Outbound); isOutbound {
-			dialerString = " using outbound/" + outbound.Type() + "[" + outbound.Tag() + "]"
-			if outbound.Type() == C.TypeLoadBalance {
-				dialerString += "[" + metadata.GetRealOutbound() + "]"
-			}
 		}
 		err = E.Cause(err, "open connection to ", remoteString, dialerString)
 		N.CloseOnHandshakeFailure(conn, onClose, err)
@@ -168,18 +172,22 @@ func (m *ConnectionManager) NewPacketConnection(ctx context.Context, this N.Dial
 			remoteConn, err = this.DialContext(ctx, N.NetworkUDP, metadata.Destination)
 		}
 		if err != nil {
+			var dialerString string
+			if outbound, isOutbound := this.(adapter.Outbound); isOutbound {
+				if outbound.Type() == C.TypeBlock {
+					N.CloseOnHandshakeFailure(conn, onClose, err)
+					return
+				}
+				dialerString = " using outbound/" + outbound.Type() + "[" + outbound.Tag() + "]"
+				if outbound.Type() == C.TypeLoadBalance {
+					dialerString += "[" + metadata.GetRealOutbound() + "]"
+				}
+			}
 			var remoteString string
 			if len(metadata.DestinationAddresses) > 0 {
 				remoteString = "[" + strings.Join(common.Map(metadata.DestinationAddresses, netip.Addr.String), ",") + "]"
 			} else {
 				remoteString = metadata.Destination.String()
-			}
-			var dialerString string
-			if outbound, isOutbound := this.(adapter.Outbound); isOutbound {
-				dialerString = " using outbound/" + outbound.Type() + "[" + outbound.Tag() + "]"
-				if outbound.Type() == C.TypeLoadBalance {
-					dialerString += "[" + metadata.GetRealOutbound() + "]"
-				}
 			}
 			err = E.Cause(err, "open packet connection to ", remoteString, dialerString)
 			N.CloseOnHandshakeFailure(conn, onClose, err)
@@ -200,6 +208,10 @@ func (m *ConnectionManager) NewPacketConnection(ctx context.Context, this N.Dial
 		if err != nil {
 			var dialerString string
 			if outbound, isOutbound := this.(adapter.Outbound); isOutbound {
+				if outbound.Type() == C.TypeBlock {
+					N.CloseOnHandshakeFailure(conn, onClose, err)
+					return
+				}
 				dialerString = " using outbound/" + outbound.Type() + "[" + outbound.Tag() + "]"
 				if outbound.Type() == C.TypeLoadBalance {
 					dialerString += "[" + metadata.GetRealOutbound() + "]"

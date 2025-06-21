@@ -1,0 +1,179 @@
+name: build cores
+
+on:
+  push:
+
+jobs:
+  build-cores:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        jobs:
+          - { goos: linux, goarch: arm64, output: arm64 }
+          - { goos: android, goarch: arm, ndk: armv7a-linux-androideabi34, output: armv7 }
+          - { goos: android, goarch: arm64, ndk: aarch64-linux-android34, output: arm64-v8 }
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '^1.24'
+          check-latest: true
+
+      - name: Set ENV
+        env:
+          DEBUG: true
+        run: |
+          git remote add upstream "https://github.com/SagerNet/sing-box.git"
+          git fetch --tags --force upstream
+          if [[ "${{ github.ref_name }}" == "dev"* ]]; then
+            TAG="$(git tag --sort=-v:refname | sed -n '1p')"
+          else
+            TAG="$(git describe --tags --abbrev=0 upstream/${{ github.ref_name }})"
+          fi
+          REV="$(git rev-parse --short HEAD)"
+          echo "BUILDTIME=$(TZ=Asia/Shanghai date)" >> $GITHUB_ENV
+          echo "NAME=${{matrix.jobs.goos}}-${{matrix.jobs.output}}" >> $GITHUB_ENV
+          echo "TAG=$TAG" >> $GITHUB_ENV
+          echo "REV=$REV" >> $GITHUB_ENV
+          echo "VERSION=${TAG}-${REV}" >> $GITHUB_ENV
+          echo "CGO_ENABLED=0" >> $GITHUB_ENV
+          echo "BUILDTAG=-extldflags -static" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Setup NDK
+        if: ${{ matrix.jobs.goos == 'android' }}
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r26c
+
+      - name: Set NDK path
+        if: ${{ matrix.jobs.goos == 'android' }}
+        run: |
+          echo "CC=${{steps.setup-ndk.outputs.ndk-path}}/toolchains/llvm/prebuilt/linux-x86_64/bin/${{matrix.jobs.ndk}}-clang" >> $GITHUB_ENV
+          echo "CGO_ENABLED=1" >> $GITHUB_ENV
+          echo "BUILDTAG=" >> $GITHUB_ENV
+
+      - name: Build Core
+        env:
+          GOOS: ${{matrix.jobs.goos}}
+          GOARCH: ${{matrix.jobs.goarch}}
+          GOAMD64: ${{matrix.jobs.goamd64}}
+          GOARM: ${{matrix.jobs.arm}}
+          GOMIPS: ${{matrix.jobs.mips}}
+        run: |
+          echo "CGO_ENABLED=${CGO_ENABLED}"
+          TAGS="with_gvisor,with_quic,with_dhcp,with_wireguard,with_utls,with_acme,with_clash_api"
+          if [[ "${{ github.ref_name }}" == "dev"* ]]; then
+            # TAGS+=",with_tailscale"
+            TAGS+=",with_proxyproviders,with_fallback,with_loadbalance"
+          else
+            TAGS+=",with_proxyproviders,with_urltest_fallback"
+          fi
+          go build -v -trimpath \
+            -tags "$TAGS" \
+            -ldflags "${BUILDTAG} -X 'github.com/sagernet/sing-box/constant.Version=${VERSION} ${BUILDTIME}' -s -w -buildid=" \
+            ./cmd/sing-box
+        shell: bash
+
+      - name: UPX
+        if: ${{  success() }}
+        run: |
+          UPX="$(curl --retry 5 --retry-all-errors -sL "https://github.com/upx/upx/releases$(curl --retry 5 --retry-all-errors -sL "https://github.com/upx/upx/releases$(curl --retry 5 --retry-all-errors -sL "https://github.com/upx/upx/releases/latest" | grep -Eo '/expanded_assets/[^\"]+')" | grep -Eo '/download/[^"]+amd64_linux[^"]+')" |tar xvJf - |grep '/upx$')"
+          $UPX --lzma --best ./sing-box || true
+        shell: bash
+
+      - name: Compress Zip
+        if: ${{  success() }}
+        run: |
+          mkdir bin
+          zip -9 -m ./bin/sing-box-${NAME}-${VERSION}.zip ./sing-box
+          ls bin
+        shell: bash
+
+      - uses: actions/upload-artifact@v4
+        if: ${{  success() }}
+        with:
+          name: artifact-sing-box-${{ env.NAME }}-${{ env.VERSION }}.gz
+          path: bin/
+
+  Upload-Release:
+    permissions: write-all
+    if: ${{ github.ref_type == 'branch' && !startsWith(github.event_name, 'pull_request') }}
+    needs: 'build-cores'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get Version
+        run: |
+          git remote add upstream https://github.com/SagerNet/sing-box.git
+          git fetch --tags --force upstream
+          if [[ "${{ github.ref_name }}" == "dev"* ]]; then
+            TAG="$(git tag --sort=-v:refname | sed -n '1p')"
+          else
+            TAG="$(git describe --tags --abbrev=0 upstream/${{ github.ref_name }})"
+          fi
+          echo "TAG=$TAG" >> $GITHUB_ENV
+        shell: bash
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: bin/
+          merge-multiple: true
+
+      - name: Display structure of downloaded files
+        run: ls -R
+        working-directory: bin
+
+      - name: Delete current release assets
+        uses: 8Mi-Tech/delete-release-assets-action@main
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ env.TAG }}
+          deleteOnlyFromDrafts: false
+
+      - name: Set Env
+        run: |
+          echo "BUILDTIME=$(TZ=Asia/Shanghai date)" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Tag Repo
+        uses: richardsimko/update-tag@v1
+        with:
+          tag_name: ${{ env.TAG }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - run: |
+          cat > release.txt << 'EOF'
+          Release created at  ${{ env.BUILDTIME }}
+          EOF
+
+      - name: Upload Prerelease
+        uses: softprops/action-gh-release@v2.2.2
+        if: ${{ success() && startsWith(github.ref_name, 'dev') }}
+        with:
+          tag_name: ${{ env.TAG }}
+          files: |
+            bin/*
+          prerelease: true
+          generate_release_notes: true
+          body_path: release.txt
+
+      - name: Upload Release
+        uses: softprops/action-gh-release@v2.2.2
+        if: ${{ success() && !startsWith(github.ref_name, 'dev') }}
+        with:
+          tag_name: ${{ env.TAG }}
+          files: |
+            bin/*
+          prerelease: false
+          generate_release_notes: true
+          body_path: release.txt

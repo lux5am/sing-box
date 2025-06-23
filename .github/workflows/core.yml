@@ -1,67 +1,180 @@
-name: Build sing-box Core
+name: build cores
 
 on:
-  # 1. 添加 'workflow_dispatch' 触发器，让您可以手动运行此工作流
-  # 这会在 Actions 页面生成一个 "Run workflow" 按钮。
-  workflow_dispatch:
-    inputs:
-      start_build:
-        description: '勾选以确认开始构建 (Click to start build)'
-        required: true
-        type: boolean
-        default: false
+  push:
 
 jobs:
-  build:
-    # 仅当点击 "Run workflow" 并将 "确认开始构建" 设置为 true 时才运行。
-    # 这就是您期望的“点击start按钮可以开始action”的逻辑。
-    if: github.event.inputs.start_build == true
+  build-cores:
+    runs-on: ubuntu-latest
     strategy:
-      fail-fast: false # 即使一个构建失败，也继续运行矩阵中的其他构建
-      # 2. 使用构建矩阵，定义所有需要构建的平台和架构组合
       matrix:
-        include:
-          - os: ubuntu-latest
-            arch: amd64
-            name: linux-amd64
-          - os: macos-latest
-            arch: amd64
-            name: macos-amd64
-          - os: macos-latest
-            arch: arm64
-            name: macos-arm64
-
-    # 在与矩阵中的 'os' 匹配的虚拟机上运行
-    runs-on: ${{ matrix.os }}
-    name: Build for ${{ matrix.name }} # 为每个任务设置一个清晰的名称
-
+        jobs:
+          - { goos: linux, goarch: arm64, output: arm64 }
+          - { goos: linux, goarch: amd64, output: amd64 }
+          - { goos: android, goarch: arm, ndk: armv7a-linux-androideabi34, output: armv7 }
+          - { goos: android, goarch: arm64, ndk: aarch64-linux-android34, output: arm64-v8 }
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Set up Go
+      - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22' # 您可以根据项目需要更改 Go 的版本
+          go-version: '^1.24'
+          check-latest: true
 
-      - name: Build the binary
+      - name: Set ENV
+        env:
+          DEBUG: true
         run: |
-          # 根据不同的操作系统和架构设置环境变量并构建
-          # GOOS 会被自动设置为 'linux' 或 'darwin'
-          # GOARCH 会使用矩阵中定义的 'amd64' 或 'arm64'
-          export GOOS=${{ runner.os == 'Linux' && 'linux' || 'darwin' }}
-          export GOARCH=${{ matrix.arch }}
-          export CGO_ENABLED=0 # 编译静态二进制文件通常不建议开启CGO
+          git remote add upstream "https://github.com/SagerNet/sing-box.git"
+          git fetch --tags --force upstream
+          if [[ "${{ github.ref_name }}" == "dev"* ]]; then
+            TAG="$(git tag --sort=-v:refname | sed -n '1p')"
+          else
+            TAG="$(git describe --tags --abbrev=0 upstream/${{ github.ref_name }})"
+          fi
+          REV="$(git rev-parse --short HEAD)"
+          echo "BUILDTIME=$(TZ=Asia/Shanghai date)" >> $GITHUB_ENV
+          echo "NAME=${{matrix.jobs.goos}}-${{matrix.jobs.output}}" >> $GITHUB_ENV
+          echo "TAG=$TAG" >> $GITHUB_ENV
+          echo "REV=$REV" >> $GITHUB_ENV
+          echo "VERSION=${TAG}-${REV}" >> $GITHUB_ENV
+          echo "CGO_ENABLED=0" >> $GITHUB_ENV
+          echo "BUILDTAG=-extldflags -static" >> $GITHUB_ENV
+        shell: bash
 
-          # 构建命令，输出文件名为 sing-box-平台-架构
-          go build -trimpath -ldflags="-s -w" -o "sing-box-${{ matrix.name }}" .
-        
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+      - name: Setup NDK
+        if: ${{ matrix.jobs.goos == 'android' }}
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
         with:
-          # 使用矩阵中的 'name' 来命名产物，使其清晰可辨
-          name: sing-box-${{ matrix.name }}
-          # 上传构建出的二进制文件
-          path: sing-box-${{ matrix.name }}
-          # 设置产物保留天数
-          retention-days: 7
+          ndk-version: r26c
+
+      - name: Set NDK path
+        if: ${{ matrix.jobs.goos == 'android' }}
+        run: |
+          echo "CC=${{steps.setup-ndk.outputs.ndk-path}}/toolchains/llvm/prebuilt/linux-x86_64/bin/${{matrix.jobs.ndk}}-clang" >> $GITHUB_ENV
+          echo "CGO_ENABLED=1" >> $GITHUB_ENV
+          echo "BUILDTAG=" >> $GITHUB_ENV
+
+      - name: Build Core
+        env:
+          GOOS: ${{matrix.jobs.goos}}
+          GOARCH: ${{matrix.jobs.goarch}}
+          GOAMD64: ${{matrix.jobs.goamd64}}
+          GOARM: ${{matrix.jobs.arm}}
+          GOMIPS: ${{matrix.jobs.mips}}
+        run: |
+          echo "CGO_ENABLED=${CGO_ENABLED}"
+          TAGS="with_gvisor,with_quic,with_dhcp,with_wireguard,with_utls,with_acme,with_clash_api"
+          if [[ "${{ github.ref_name }}" == "dev"* ]]; then
+            # TAGS+=",with_tailscale"
+            TAGS+=",with_proxyproviders,with_fallback,with_loadbalance"
+          else
+            TAGS+=",with_proxyproviders,with_urltest_fallback"
+          fi
+          go build -v -trimpath \
+            -tags "$TAGS" \
+            -ldflags "${BUILDTAG} -X 'github.com/sagernet/sing-box/constant.Version=${VERSION} ${BUILDTIME}' -s -w -buildid=" \
+            ./cmd/sing-box
+        shell: bash
+
+      - name: UPX
+        if: ${{  success() }}
+        run: |
+          UPX="$(curl --retry 5 --retry-all-errors -sL "https://github.com/upx/upx/releases$(curl --retry 5 --retry-all-errors -sL "https://github.com/upx/upx/releases$(curl --retry 5 --retry-all-errors -sL "https://github.com/upx/upx/releases/latest" | grep -Eo '/expanded_assets/[^\"]+')" | grep -Eo '/download/[^"]+amd64_linux[^"]+')" |tar xvJf - |grep '/upx$')"
+          $UPX --lzma --best ./sing-box || true
+        shell: bash
+
+      - name: Compress Zip
+        if: ${{  success() }}
+        run: |
+          mkdir bin
+          zip -9 -m ./bin/sing-box-${NAME}-${VERSION}.zip ./sing-box
+          ls bin
+        shell: bash
+
+      - uses: actions/upload-artifact@v4
+        if: ${{  success() }}
+        with:
+          name: artifact-sing-box-${{ env.NAME }}-${{ env.VERSION }}.gz
+          path: bin/
+
+  Upload-Release:
+    permissions: write-all
+    if: ${{ github.ref_type == 'branch' && !startsWith(github.event_name, 'pull_request') }}
+    needs: 'build-cores'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get Version
+        run: |
+          git remote add upstream https://github.com/SagerNet/sing-box.git
+          git fetch --tags --force upstream
+          if [[ "${{ github.ref_name }}" == "dev"* ]]; then
+            TAG="$(git tag --sort=-v:refname | sed -n '1p')"
+          else
+            TAG="$(git describe --tags --abbrev=0 upstream/${{ github.ref_name }})"
+          fi
+          echo "TAG=$TAG" >> $GITHUB_ENV
+        shell: bash
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: bin/
+          merge-multiple: true
+
+      - name: Display structure of downloaded files
+        run: ls -R
+        working-directory: bin
+
+      - name: Delete current release assets
+        uses: 8Mi-Tech/delete-release-assets-action@main
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ env.TAG }}
+          deleteOnlyFromDrafts: false
+
+      - name: Set Env
+        run: |
+          echo "BUILDTIME=$(TZ=Asia/Shanghai date)" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Tag Repo
+        uses: richardsimko/update-tag@v1
+        with:
+          tag_name: ${{ env.TAG }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - run: |
+          cat > release.txt << 'EOF'
+          Release created at  ${{ env.BUILDTIME }}
+          EOF
+
+      - name: Upload Prerelease
+        uses: softprops/action-gh-release@v2.2.2
+        if: ${{ success() && startsWith(github.ref_name, 'dev') }}
+        with:
+          tag_name: ${{ env.TAG }}
+          files: |
+            bin/*
+          prerelease: true
+          generate_release_notes: true
+          body_path: release.txt
+
+      - name: Upload Release
+        uses: softprops/action-gh-release@v2.2.2
+        if: ${{ success() && !startsWith(github.ref_name, 'dev') }}
+        with:
+          tag_name: ${{ env.TAG }}
+          files: |
+            bin/*
+          prerelease: false
+          generate_release_notes: true
+          body_path: release.txt

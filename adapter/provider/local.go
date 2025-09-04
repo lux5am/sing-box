@@ -5,7 +5,10 @@ import (
 	"os"
 	"runtime"
 	"time"
+	"path/filepath"
+	"sync"
 
+	"github.com/sagernet/fswatch"
 	"github.com/sagernet/sing-box/adapter"
 	"github.com/sagernet/sing-box/common/urltest"
 	C "github.com/sagernet/sing-box/constant"
@@ -27,6 +30,8 @@ var (
 
 type LocalProvider struct {
 	myProviderAdapter
+	watcher      *fswatch.Watcher
+	updateAccess sync.Mutex
 }
 
 func NewLocalProvider(ctx context.Context, manager *Manager, router adapter.Router, options option.OutboundProvider, path string) (*LocalProvider, error) {
@@ -84,6 +89,18 @@ func NewLocalProvider(ctx context.Context, manager *Manager, router adapter.Rout
 	if err := provider.firstStart(options.Ports); err != nil {
 		return nil, err
 	}
+	filePath, _ := filepath.Abs(path)
+	watcher, err := fswatch.NewWatcher(fswatch.Options{
+		Path: []string{filePath},
+		Callback: func(path string) {
+			provider.UpdateProvider(provider.ctx, provider.router)
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	provider.watcher = watcher
+
 	return provider, nil
 }
 
@@ -94,6 +111,12 @@ func (p *LocalProvider) Start() error {
 	} else {
 		p.healchcheckHistory = urltest.NewHistoryStorage()
 	}
+	if p.watcher != nil {
+		err := p.watcher.Start()
+		if err != nil {
+			p.logger.Error(E.Cause(err, "watch provider file"))
+		}
+	}
 	return nil
 }
 
@@ -103,6 +126,9 @@ func (p *LocalProvider) PostStart() error {
 }
 
 func (p *LocalProvider) UpdateProvider(ctx context.Context, router adapter.Router) error {
+	p.updateAccess.Lock()
+	defer p.updateAccess.Unlock()
+
 	defer runtime.GC()
 	ctx = log.ContextWithNewID(ctx)
 	if p.updating.Swap(true) {

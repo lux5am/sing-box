@@ -148,12 +148,15 @@ func getFirstLine(content string) (string, string) {
 }
 
 func (p *myProviderAdapter) SubInfo() map[string]int64 {
-	info := make(map[string]int64)
-	info["Upload"] = p.subInfo.upload
-	info["Download"] = p.subInfo.download
-	info["Total"] = p.subInfo.total
-	info["Expire"] = p.subInfo.expire
-	return info
+	if p.subInfo.upload != 0 || p.subInfo.download != 0 || p.subInfo.total != 0 || p.subInfo.expire != 0 {
+		info := make(map[string]int64)
+		info["Upload"] = p.subInfo.upload
+		info["Download"] = p.subInfo.download
+		info["Total"] = p.subInfo.total
+		info["Expire"] = p.subInfo.expire
+		return info
+	}
+	return nil
 }
 
 func parseSubInfo(infoString string) (SubInfo, bool) {

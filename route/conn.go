@@ -102,8 +102,6 @@ func (m *ConnectionManager) NewConnection(ctx context.Context, this N.Dialer, co
 		m.connections.Remove(element)
 	})
 	var done atomic.Bool
-	m.preConnectionCopy(ctx, conn, remoteConn, false, &done, onClose)
-	m.preConnectionCopy(ctx, remoteConn, conn, true, &done, onClose)
 	go m.connectionCopy(ctx, conn, remoteConn, false, &done, onClose)
 	go m.connectionCopy(ctx, remoteConn, conn, true, &done, onClose)
 }
@@ -293,6 +291,8 @@ func (m *ConnectionManager) connectionCopy(ctx context.Context, source net.Conn,
 		}
 		break
 	}
+
+	m.preConnectionCopy(ctx, source, destination, direction, done, onClose)
 
 	_, err := bufio.CopyWithCounters(destinationWriter, sourceReader, source, readCounters, writeCounters, bufio.DefaultIncreaseBufferAfter, bufio.DefaultBatchSize)
 	if err != nil {

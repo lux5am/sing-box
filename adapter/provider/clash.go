@@ -41,6 +41,13 @@ func convertTLSOptions(proxy map[string]any) *option.OutboundTLSOptions {
 		Reality: &option.OutboundRealityOptions{},
 	}
 
+	if kerneltx, exists := proxy["kernel-tx"].(bool); exists {
+		options.KernelTx = kerneltx
+	}
+	if kernelrx, exists := proxy["kernel-rx"].(bool); exists {
+		options.KernelRx = kernelrx
+	}
+
 	if insecure, exists := proxy["skip-cert-verify"].(bool); exists {
 		options.Insecure = insecure
 	}

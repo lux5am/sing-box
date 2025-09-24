@@ -8,6 +8,7 @@ require (
 	github.com/coder/websocket v1.8.13
 	github.com/cretz/bine v0.2.0
 	github.com/dlclark/regexp2 v1.11.5
+	github.com/ebitengine/purego v0.9.0
 	github.com/go-chi/chi/v5 v5.2.2
 	github.com/go-chi/render v1.0.3
 	github.com/godbus/dbus/v5 v5.1.1-0.20230522191255-76236955d466

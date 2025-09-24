@@ -5,10 +5,11 @@ import (
 	"context"
 	"net"
 	"net/http"
-	"runtime"
+	"os"
 	"runtime/debug"
 	"time"
 
+	mem "github.com/sagernet/sing-box/common/memory"
 	"github.com/sagernet/sing/common/json"
 	"github.com/sagernet/ws"
 	"github.com/sagernet/ws/wsutil"
@@ -20,7 +21,10 @@ import (
 
 // API created by Clash.Meta
 
+var pid int32
+
 func (s *Server) setupMetaAPI(r chi.Router) {
+	pid = int32(os.Getpid())
 	if s.logDebug {
 		r := chi.NewRouter()
 		r.Put("/gc", func(w http.ResponseWriter, r *http.Request) {
@@ -39,9 +43,11 @@ type Memory struct {
 }
 
 func inuseMemory() uint64 {
-	var memStats runtime.MemStats
-	runtime.ReadMemStats(&memStats)
-	return memStats.StackInuse + memStats.HeapInuse + memStats.HeapIdle - memStats.HeapReleased
+	stat, err := mem.GetMemoryInfo(pid)
+	if err != nil {
+		return 0
+	}
+	return stat.RSS
 }
 
 func memory(ctx context.Context) func(w http.ResponseWriter, r *http.Request) {

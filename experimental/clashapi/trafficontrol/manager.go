@@ -1,12 +1,13 @@
 package trafficontrol
 
 import (
-	"runtime"
+	"os"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/sagernet/sing-box/common/compatible"
+	"github.com/sagernet/sing-box/common/memory"
 	C "github.com/sagernet/sing-box/constant"
 	"github.com/sagernet/sing/common"
 	"github.com/sagernet/sing/common/json"
@@ -22,12 +23,15 @@ type Manager struct {
 	connections             compatible.Map[uuid.UUID, Tracker]
 	closedConnectionsAccess sync.Mutex
 	closedConnections       list.List[TrackerMetadata]
-	// process     *process.Process
+
+	pid    int32
 	memory uint64
 }
 
 func NewManager() *Manager {
-	return &Manager{}
+	return &Manager{
+		pid: int32(os.Getpid()),
+	}
 }
 
 func (m *Manager) Join(c Tracker) {
@@ -87,6 +91,14 @@ func (m *Manager) Connection(id uuid.UUID) Tracker {
 	return connection
 }
 
+func (m *Manager) updateMemory() {
+	stat, err := memory.GetMemoryInfo(m.pid)
+	if err != nil {
+		return
+	}
+	m.memory = stat.RSS
+}
+
 func (m *Manager) Snapshot() *Snapshot {
 	var connections []Tracker
 	m.connections.Range(func(_ uuid.UUID, value Tracker) bool {
@@ -96,9 +108,7 @@ func (m *Manager) Snapshot() *Snapshot {
 		return true
 	})
 
-	var memStats runtime.MemStats
-	runtime.ReadMemStats(&memStats)
-	m.memory = memStats.StackInuse + memStats.HeapInuse + memStats.HeapIdle - memStats.HeapReleased
+	m.updateMemory()
 
 	return &Snapshot{
 		Upload:      m.uploadTotal.Load(),

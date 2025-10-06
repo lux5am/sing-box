@@ -37,25 +37,19 @@ func NewDomainRegexItem(expressions []string) (*DomainRegexItem, error) {
 	return &DomainRegexItem{matchers, description}, nil
 }
 
-func (r *DomainRegexItem) Match(metadata *adapter.InboundContext) bool {
-	var domainHost string
-	if metadata.Destination.IsFqdn() {
-		domainHost = metadata.Destination.Fqdn
-	} else if metadata.SniffHost != "" {
-		domainHost = metadata.SniffHost
-	} else {
-		domainHost = metadata.Domain
-	}
-	if domainHost == "" {
-		return false
-	}
-	domainHost = strings.ToLower(domainHost)
+func (r *DomainRegexItem) match(domainHost string) bool {
 	for _, matcher := range r.matchers {
 		if matcher.MatchString(domainHost) {
 			return true
 		}
 	}
 	return false
+}
+
+func (r *DomainRegexItem) Match(metadata *adapter.InboundContext) bool {
+	return (metadata.Destination.Fqdn != "" && r.match(strings.ToLower(metadata.Destination.Fqdn))) ||
+		(metadata.SniffHost != "" && metadata.SniffHost != metadata.Destination.Fqdn && r.match(strings.ToLower(metadata.SniffHost))) ||
+		(metadata.Domain != "" && metadata.Domain != metadata.SniffHost && metadata.Domain != metadata.Destination.Fqdn && r.match(strings.ToLower(metadata.Domain)))
 }
 
 func (r *DomainRegexItem) String() string {

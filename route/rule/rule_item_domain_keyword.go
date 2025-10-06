@@ -16,25 +16,19 @@ func NewDomainKeywordItem(keywords []string) *DomainKeywordItem {
 	return &DomainKeywordItem{keywords}
 }
 
-func (r *DomainKeywordItem) Match(metadata *adapter.InboundContext) bool {
-	var domainHost string
-	if metadata.Destination.IsFqdn() {
-		domainHost = metadata.Destination.Fqdn
-	} else if metadata.SniffHost != "" {
-		domainHost = metadata.SniffHost
-	} else {
-		domainHost = metadata.Domain
-	}
-	if domainHost == "" {
-		return false
-	}
-	domainHost = strings.ToLower(domainHost)
+func (r *DomainKeywordItem) match(domainHost string) bool {
 	for _, keyword := range r.keywords {
 		if strings.Contains(domainHost, keyword) {
 			return true
 		}
 	}
 	return false
+}
+
+func (r *DomainKeywordItem) Match(metadata *adapter.InboundContext) bool {
+	return (metadata.Destination.Fqdn != "" && r.match(strings.ToLower(metadata.Destination.Fqdn))) ||
+		(metadata.SniffHost != "" && metadata.SniffHost != metadata.Destination.Fqdn && r.match(strings.ToLower(metadata.SniffHost))) ||
+		(metadata.Domain != "" && metadata.Domain != metadata.SniffHost && metadata.Domain != metadata.Destination.Fqdn && r.match(strings.ToLower(metadata.Domain)))
 }
 
 func (r *DomainKeywordItem) String() string {

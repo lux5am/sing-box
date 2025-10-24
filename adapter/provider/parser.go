@@ -6,7 +6,6 @@ import (
 
 	C "github.com/sagernet/sing-box/constant"
 	"github.com/sagernet/sing-box/option"
-	"github.com/sagernet/sing/common"
 	E "github.com/sagernet/sing/common/exceptions"
 )
 
@@ -36,10 +35,6 @@ func (p *myProviderAdapter) newParser(content string) ([]option.Outbound, error)
 }
 
 func (p *myProviderAdapter) overrideOutbounds(outbounds []option.Outbound) []option.Outbound {
-	var tags []string
-	for _, outbound := range outbounds {
-		tags = append(tags, outbound.Tag)
-	}
 	var parsedOutbounds []option.Outbound
 	for _, outbound := range outbounds {
 		if p.outboundOverride != nil {
@@ -53,55 +48,55 @@ func (p *myProviderAdapter) overrideOutbounds(outbounds []option.Outbound) []opt
 		switch outbound.Type {
 		case C.TypeHTTP:
 			options := outbound.Options.(*option.HTTPOutboundOptions)
-			options.DialerOptions = p.overrideDialerOption(options.DialerOptions, tags)
+			options.DialerOptions = p.overrideDialerOption(options.DialerOptions)
 			outbound.Options = options
 		case C.TypeSOCKS:
 			options := outbound.Options.(*option.SOCKSOutboundOptions)
-			options.DialerOptions = p.overrideDialerOption(options.DialerOptions, tags)
+			options.DialerOptions = p.overrideDialerOption(options.DialerOptions)
 			outbound.Options = options
 		case C.TypeTUIC:
 			options := outbound.Options.(*option.TUICOutboundOptions)
-			options.DialerOptions = p.overrideDialerOption(options.DialerOptions, tags)
+			options.DialerOptions = p.overrideDialerOption(options.DialerOptions)
 			outbound.Options = options
 		case C.TypeVMess:
 			options := outbound.Options.(*option.VMessOutboundOptions)
-			options.DialerOptions = p.overrideDialerOption(options.DialerOptions, tags)
+			options.DialerOptions = p.overrideDialerOption(options.DialerOptions)
 			outbound.Options = options
 		case C.TypeVLESS:
 			options := outbound.Options.(*option.VLESSOutboundOptions)
-			options.DialerOptions = p.overrideDialerOption(options.DialerOptions, tags)
+			options.DialerOptions = p.overrideDialerOption(options.DialerOptions)
 			outbound.Options = options
 		case C.TypeTrojan:
 			options := outbound.Options.(*option.TrojanOutboundOptions)
-			options.DialerOptions = p.overrideDialerOption(options.DialerOptions, tags)
+			options.DialerOptions = p.overrideDialerOption(options.DialerOptions)
 			outbound.Options = options
 		case C.TypeHysteria:
 			options := outbound.Options.(*option.HysteriaOutboundOptions)
-			options.DialerOptions = p.overrideDialerOption(options.DialerOptions, tags)
+			options.DialerOptions = p.overrideDialerOption(options.DialerOptions)
 			outbound.Options = options
 		case C.TypeShadowTLS:
 			options := outbound.Options.(*option.ShadowTLSOutboundOptions)
-			options.DialerOptions = p.overrideDialerOption(options.DialerOptions, tags)
+			options.DialerOptions = p.overrideDialerOption(options.DialerOptions)
 			outbound.Options = options
 		case C.TypeHysteria2:
 			options := outbound.Options.(*option.Hysteria2OutboundOptions)
-			options.DialerOptions = p.overrideDialerOption(options.DialerOptions, tags)
+			options.DialerOptions = p.overrideDialerOption(options.DialerOptions)
 			outbound.Options = options
 		case C.TypeWireGuard:
 			options := outbound.Options.(*option.LegacyWireGuardOutboundOptions)
-			options.DialerOptions = p.overrideDialerOption(options.DialerOptions, tags)
+			options.DialerOptions = p.overrideDialerOption(options.DialerOptions)
 			outbound.Options = options
 		case C.TypeAnyTLS:
 			options := outbound.Options.(*option.AnyTLSOutboundOptions)
-			options.DialerOptions = p.overrideDialerOption(options.DialerOptions, tags)
+			options.DialerOptions = p.overrideDialerOption(options.DialerOptions)
 			outbound.Options = options
 		case C.TypeShadowsocks:
 			options := outbound.Options.(*option.ShadowsocksOutboundOptions)
-			options.DialerOptions = p.overrideDialerOption(options.DialerOptions, tags)
+			options.DialerOptions = p.overrideDialerOption(options.DialerOptions)
 			outbound.Options = options
 		case C.TypeShadowsocksR:
 			options := outbound.Options.(*option.ShadowsocksROutboundOptions)
-			options.DialerOptions = p.overrideDialerOption(options.DialerOptions, tags)
+			options.DialerOptions = p.overrideDialerOption(options.DialerOptions)
 			outbound.Options = options
 		}
 		parsedOutbounds = append(parsedOutbounds, outbound)
@@ -109,12 +104,7 @@ func (p *myProviderAdapter) overrideOutbounds(outbounds []option.Outbound) []opt
 	return parsedOutbounds
 }
 
-func (p *myProviderAdapter) overrideDialerOption(options option.DialerOptions, tags []string) option.DialerOptions {
-	if options.Detour != "" && !common.Any(tags, func(tag string) bool {
-		return options.Detour == tag
-	}) {
-		options.Detour = ""
-	}
+func (p *myProviderAdapter) overrideDialerOption(options option.DialerOptions) option.DialerOptions {
 	var defaultOptions option.OverrideDialerOptions
 	if p.outboundOverride == nil || p.outboundOverride.OverrideDialerOptions == nil || reflect.DeepEqual(*p.outboundOverride.OverrideDialerOptions, defaultOptions) {
 		return options

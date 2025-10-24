@@ -7,6 +7,7 @@ import (
 
 	"github.com/sagernet/sing-box/adapter"
 	C "github.com/sagernet/sing-box/constant"
+	"github.com/sagernet/sing-box/protocol/group"
 	"github.com/sagernet/sing/common"
 	"github.com/sagernet/sing/common/bufio"
 	E "github.com/sagernet/sing/common/exceptions"
@@ -85,6 +86,35 @@ func (d *DetourDialer) DialContext(ctx context.Context, network string, destinat
 	if err != nil {
 		return nil, err
 	}
+
+	// check detour loop
+	if metadata := adapter.ContextFrom(ctx); metadata != nil && metadata.Outbound != "" {
+		if outbound, loaded := dialer.(adapter.Outbound); loaded {
+			tag := outbound.Tag()
+			if tag == metadata.Outbound {
+				return nil, E.New("loop on detour: ", tag)
+			}
+			for {
+				if groupAdapter, ok := outbound.(group.Adapter); ok {
+					tag = groupAdapter.Now()
+					if tag == metadata.Outbound {
+						return nil, E.New("loop on detour: ", tag)
+					} else if tag != "" {
+						outbound, loaded = d.outboundManager.OutboundWithProvider(tag)
+						if !loaded {
+							return nil, E.New("outbound detour not found: ", tag)
+						}
+						continue
+					}
+				}
+				break
+			}
+			if loaded && dialer != outbound {
+				dialer = outbound
+			}
+		}
+	}
+
 	if dialer.(adapter.Outbound).Type() != C.TypeDirect {
 		if router := service.FromContext[adapter.Router](ctx); router != nil {
 			trackers := router.Trackers()

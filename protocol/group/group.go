@@ -12,6 +12,10 @@ import (
 	R "github.com/dlclark/regexp2"
 )
 
+type Adapter interface {
+	Selected() adapter.Outbound
+}
+
 type myGroupAdapter struct {
 	ctx             context.Context
 	tags            []string
@@ -22,6 +26,10 @@ type myGroupAdapter struct {
 	types           []string
 	ports           map[int]bool
 	providers       map[string]adapter.OutboundProvider
+}
+
+func (g *myGroupAdapter) Selected() adapter.Outbound {
+	return nil
 }
 
 func CheckType(types []string) bool {

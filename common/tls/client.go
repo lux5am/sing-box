@@ -130,6 +130,9 @@ type defaultDialer struct {
 }
 
 func NewDialer(dialer N.Dialer, config Config) Dialer {
+	if config == nil {
+		return nil
+	}
 	return &defaultDialer{dialer, config}
 }
 

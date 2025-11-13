@@ -72,7 +72,11 @@ func NewRouter(ctx context.Context, logFactory log.Factory, options option.DNSOp
 		Logger: router.logger,
 	})
 	if options.ReverseMapping {
-		router.dnsReverseMapping = common.Must1(freelru.NewSharded[netip.Addr, string](1024, maphash.NewHasher[netip.Addr]().Hash32))
+		capacity := options.CacheCapacity
+		if capacity < 1024 {
+			capacity = 1024
+		}
+		router.dnsReverseMapping = common.Must1(freelru.NewSharded[netip.Addr, string](capacity, maphash.NewHasher[netip.Addr]().Hash32))
 	}
 	return router
 }

@@ -13,12 +13,12 @@ require (
 	github.com/database64128/tfo-go/v2 v2.4.2
 	github.com/dblohm7/wingoes v0.0.0-20260526185140-fb298caac7ca
 	github.com/dlclark/regexp2 v1.12.0
-	github.com/go-chi/chi/v5 v5.2.5
+	github.com/go-chi/chi/v5 v5.5.0
 	github.com/go-chi/render v1.0.3
 	github.com/gobwas/ws v1.4.0
-	github.com/godbus/dbus/v5 v5.2.2
+	github.com/godbus/dbus/v5 v5.2.4
 	github.com/gofrs/uuid/v5 v5.5.1
-	github.com/insomniacslk/dhcp v0.0.0-20260901064844-234b97448fae
+	github.com/insomniacslk/dhcp v0.0.0-20261014062924-c6bb46ad3f3a
 	github.com/jsimonetti/rtnetlink v1.4.2
 	github.com/keybase/go-keychain v0.0.1
 	github.com/libdns/acmedns v0.5.0
@@ -30,7 +30,7 @@ require (
 	github.com/mdlayher/netlink v1.11.2
 	github.com/metacubex/utls v1.9.0-alpha.1
 	github.com/mholt/acmez/v3 v3.1.6
-	github.com/miekg/dns v1.1.72
+	github.com/miekg/dns v1.1.73
 	github.com/openai/openai-go/v3 v3.26.0
 	github.com/oschwald/maxminddb-golang v1.13.1
 	github.com/pkg/sftp v1.13.10
@@ -88,11 +88,11 @@ require (
 	filippo.io/edwards25519 v1.2.0 // indirect
 	filippo.io/hpke v0.4.0 // indirect
 	github.com/RyuaNerin/go-krypto v1.3.0 // indirect
-	github.com/ajg/form v1.5.1 // indirect
+	github.com/ajg/form v1.9.0 // indirect
 	github.com/akutz/memconn v0.1.0 // indirect
 	github.com/alexbrainman/sspi v0.0.0-20250919150558-7d374ff0d59e // indirect
 	github.com/anchore/go-lzo v0.1.0 // indirect
-	github.com/andybalholm/brotli v1.1.0 // indirect
+	github.com/andybalholm/brotli v1.3.0 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
 	github.com/axiomhq/hyperloglog v0.2.6 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
@@ -103,7 +103,7 @@ require (
 	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1 // indirect
 	github.com/dgryski/go-camellia v0.0.0-20191119043421-69a8a13fb23d // indirect
 	github.com/dgryski/go-metro v0.0.0-20250106013310-edb8663e5e33 // indirect
-	github.com/ebitengine/purego v0.10.0 // indirect
+	github.com/ebitengine/purego v0.11.3 // indirect
 	github.com/florianl/go-nfqueue/v2 v2.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.3 // indirect
@@ -128,13 +128,13 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
 	github.com/kamstrup/intmap v0.5.2 // indirect
-	github.com/klauspost/compress v1.20.2 // indirect
+	github.com/klauspost/compress v1.20.5 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/koron/go-ssdp v0.0.4 // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/libp2p/go-nat v1.0.1-0.20250821073202-01afc089f138 // indirect
 	github.com/libp2p/go-netroute v0.2.1 // indirect
-	github.com/mdlayher/socket v0.7.0 // indirect
+	github.com/mdlayher/socket v0.8.0 // indirect
 	github.com/mitchellh/go-ps v1.0.0 // indirect
 	github.com/philhofer/fwd v1.2.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.26 // indirect
@@ -175,7 +175,7 @@ require (
 	github.com/sagernet/cronet-go/lib/windows_arm64 v0.0.0-20261126082848-2767273ce7ab // indirect
 	github.com/sagernet/gvisor v0.0.0-20260727.0-sing-box-mod.1 // indirect
 	github.com/smallstep/pkcs7 v0.1.1 // indirect
-	github.com/spf13/pflag v1.0.10 // indirect
+	github.com/spf13/pflag v1.1.0 // indirect
 	github.com/tailscale/certstore v0.1.1-0.20260409135935-3638fb84b77d // indirect
 	github.com/tailscale/hujson v0.0.0-20260727124030-b80ff77dac4f // indirect
 	github.com/tailscale/netlink v1.1.1-0.20240822203006-4d49adab4de7 // indirect
@@ -197,7 +197,7 @@ require (
 	golang.org/x/tools v0.53.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
 	golang.zx2c4.com/wireguard/windows v1.0.1 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260817212433-ac3dfec99bb1 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20261123191846-1e707ab9fbc2 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
 	zombiezen.com/go/capnproto2 v2.18.2+incompatible // indirect
 )

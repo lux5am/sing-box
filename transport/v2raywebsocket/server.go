@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/gobwas/ws"
 	"github.com/sagernet/sing-box/adapter"
 	"github.com/sagernet/sing-box/common/badhttp"
 	"github.com/sagernet/sing-box/common/tls"
@@ -23,7 +24,6 @@ import (
 	M "github.com/sagernet/sing/common/metadata"
 	N "github.com/sagernet/sing/common/network"
 	aTLS "github.com/sagernet/sing/common/tls"
-	"github.com/sagernet/ws"
 )
 
 var _ adapter.V2RayServerTransport = (*Server)(nil)

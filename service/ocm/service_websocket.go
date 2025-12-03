@@ -15,8 +15,8 @@ import (
 	E "github.com/sagernet/sing/common/exceptions"
 	M "github.com/sagernet/sing/common/metadata"
 	"github.com/sagernet/sing/common/ntp"
-	"github.com/sagernet/ws"
-	"github.com/sagernet/ws/wsutil"
+	"github.com/gobwas/ws"
+	"github.com/gobwas/ws/wsutil"
 
 	"github.com/openai/openai-go/v3/responses"
 )

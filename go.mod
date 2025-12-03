@@ -15,6 +15,7 @@ require (
 	github.com/dlclark/regexp2 v1.11.5
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/go-chi/render v1.0.3
+	github.com/gobwas/ws v1.4.0
 	github.com/godbus/dbus/v5 v5.2.2
 	github.com/gofrs/uuid/v5 v5.5.1
 	github.com/insomniacslk/dhcp v0.0.0-20260220084031-5adc3eb26f91
@@ -61,7 +62,6 @@ require (
 	github.com/sagernet/smux v1.5.50-sing-box-mod.1
 	github.com/sagernet/tailscale v1.102.1-sing-box-1.14-mod.5.0.20260925112514-35e61219dedd
 	github.com/sagernet/wireguard-go v0.0.8-0.20260925112423-da3fb928cdc1
-	github.com/sagernet/ws v0.0.0-20231204124109-acfe8907c854
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.0
 	github.com/tailscale/go-winio v0.0.0-20231025203758-c4f33415bf55

@@ -27,8 +27,8 @@ import (
 	"github.com/sagernet/sing/common/observable"
 	"github.com/sagernet/sing/service"
 	"github.com/sagernet/sing/service/filemanager"
-	"github.com/sagernet/ws"
-	"github.com/sagernet/ws/wsutil"
+	"github.com/gobwas/ws"
+	"github.com/gobwas/ws/wsutil"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"

@@ -10,8 +10,8 @@ import (
 	"github.com/sagernet/sing-box/adapter"
 	"github.com/sagernet/sing-box/experimental/clashapi/trafficontrol"
 	"github.com/sagernet/sing/common/json"
-	"github.com/sagernet/ws"
-	"github.com/sagernet/ws/wsutil"
+	"github.com/gobwas/ws"
+	"github.com/gobwas/ws/wsutil"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"

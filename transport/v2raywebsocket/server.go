@@ -23,7 +23,7 @@ import (
 	N "github.com/sagernet/sing/common/network"
 	aTLS "github.com/sagernet/sing/common/tls"
 	sHttp "github.com/sagernet/sing/protocol/http"
-	"github.com/sagernet/ws"
+	"github.com/gobwas/ws"
 )
 
 var _ adapter.V2RayServerTransport = (*Server)(nil)

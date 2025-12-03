@@ -8,7 +8,7 @@ import (
 	"github.com/sagernet/sing/common/buf"
 	"github.com/sagernet/sing/common/bufio"
 	N "github.com/sagernet/sing/common/network"
-	"github.com/sagernet/ws"
+	"github.com/gobwas/ws"
 )
 
 type Writer struct {

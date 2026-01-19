@@ -63,6 +63,7 @@ type myProviderAdapter struct {
 	excludes            *R.Regexp
 	types               []string
 	ports               map[int]bool
+	access              sync.RWMutex
 
 	// Update cache
 	checking     atomic.Bool
@@ -95,14 +96,16 @@ func (p *myProviderAdapter) UpdateTime() time.Time {
 }
 
 func (p *myProviderAdapter) Outbound(tag string) (adapter.Outbound, bool) {
+	p.access.RLock()
+	defer p.access.RUnlock()
 	outbound, loaded := p.outboundByTag[tag]
 	return outbound, loaded
 }
 
 func (p *myProviderAdapter) Outbounds() []adapter.Outbound {
-	var outbounds []adapter.Outbound
-	outbounds = append(outbounds, p.outbounds...)
-	return outbounds
+	p.access.RLock()
+	defer p.access.RUnlock()
+	return p.outbounds
 }
 
 func (p *myProviderAdapter) firstStart(ports []string) error {
@@ -133,6 +136,8 @@ func (p *myProviderAdapter) firstStart(ports []string) error {
 		tag := out.Tag()
 		outboundByTag[tag] = out
 	}
+	p.access.Lock()
+	defer p.access.Unlock()
 	p.outbounds = outbounds
 	p.outboundByTag = outboundByTag
 	return nil
@@ -297,17 +302,21 @@ func (p *myProviderAdapter) updateProviderFromContent(ctx context.Context, route
 		return false, err
 	}
 
+	p.access.Lock()
 	outsBackup := p.outbounds
 	outByTagBackup := p.outboundByTag
 	p.outbounds = outbounds
 	p.outboundByTag = outboundByTag
+	p.access.Unlock()
 
 	if err := p.updateGroups(router); err != nil {
 		for _, out := range outbounds {
 			common.Close(out)
 		}
+		p.access.Lock()
 		p.outbounds = outsBackup
 		p.outboundByTag = outByTagBackup
+		p.access.Unlock()
 		return false, err
 	}
 
@@ -315,6 +324,8 @@ func (p *myProviderAdapter) updateProviderFromContent(ctx context.Context, route
 }
 
 func (p *myProviderAdapter) UpdateOutboundByTag() {
+	p.access.Lock()
+	defer p.access.Unlock()
 	outboundByTag := make(map[string]adapter.Outbound)
 	for _, out := range p.outbounds {
 		tag := out.Tag()
@@ -444,6 +455,7 @@ func (p *myProviderAdapter) healthcheck(ctx context.Context, link string) map[st
 	b, _ := batch.New(ctx, batch.WithConcurrencyNum[any](10))
 	checked := make(map[string]bool)
 	var resultAccess sync.Mutex
+	p.access.RLock()
 	for _, detour := range p.outbounds {
 		tag := detour.Tag()
 		if checked[tag] {
@@ -474,6 +486,7 @@ func (p *myProviderAdapter) healthcheck(ctx context.Context, link string) map[st
 			return nil, nil
 		})
 	}
+	p.access.RUnlock()
 	b.Wait()
 	return result
 }

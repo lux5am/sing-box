@@ -126,7 +126,10 @@ func (p *LocalProvider) PostStart() error {
 }
 
 func (p *LocalProvider) UpdateProvider(ctx context.Context, router adapter.Router) error {
-	p.updateAccess.Lock()
+	if !p.updateAccess.TryLock() {
+		p.logger.DebugContext(ctx, "already running outbound provider update ", p.tag)
+		return nil
+	}
 	defer p.updateAccess.Unlock()
 
 	defer runtime.GC()

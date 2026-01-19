@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/sagernet/sing-box/adapter"
@@ -42,6 +43,7 @@ type RemoteProvider struct {
 
 	updateTicker     *time.Ticker
 	firstStartCancel context.CancelFunc
+	updateAccess     sync.Mutex
 }
 
 func NewRemoteProvider(ctx context.Context, manager *Manager, router adapter.Router, options option.OutboundProvider, path string) (*RemoteProvider, error) {
@@ -293,6 +295,12 @@ func (p *RemoteProvider) fetchOnce(ctx context.Context, router adapter.Router) e
 }
 
 func (p *RemoteProvider) UpdateProvider(ctx context.Context, router adapter.Router) error {
+	if !p.updateAccess.TryLock() {
+		p.logger.DebugContext(ctx, "already running outbound provider update ", p.tag)
+		return nil
+	}
+	defer p.updateAccess.Unlock()
+
 	if err := p.updateProvider(ctx, router); err != nil {
 		return err
 	}

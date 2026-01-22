@@ -7,6 +7,7 @@ import (
 	"net/netip"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/sagernet/sing-box/adapter"
@@ -66,8 +67,18 @@ func (rs *dnsAnswer) RoundRobin() []dns.RR {
 }
 
 type dnsMsg struct {
-	msg *dns.Msg
-	rrs *dnsAnswer
+	msg      *dns.Msg
+	rrs      *dnsAnswer
+	expire   int64
+	updating atomic.Bool
+}
+
+func (dm *dnsMsg) GetExpire() time.Time {
+	return time.UnixMilli(dm.expire)
+}
+
+func (dm *dnsMsg) SetExpire(expire time.Time) {
+	dm.expire = expire.UnixMilli()
 }
 
 func (dm *dnsMsg) Copy() *dns.Msg {
@@ -117,6 +128,8 @@ type Client struct {
 	cacheRoundRobin    bool
 	cacheMinTTL        uint32
 	cacheMaxTTL        uint32
+	cacheStaleTTL      uint32
+	cacheUseStaleTTL   bool
 	clientSubnet       netip.Prefix
 	rdrc               adapter.RDRCStore
 	initRDRCFunc       func() adapter.RDRCStore
@@ -137,6 +150,7 @@ type ClientOptions struct {
 	ClientSubnet     netip.Prefix
 	CacheMinTTL      uint32
 	CacheMaxTTL      uint32
+	CacheStaleTTL    uint32
 	RDRC             func() adapter.RDRCStore
 	Logger           logger.ContextLogger
 }
@@ -151,6 +165,8 @@ func NewClient(options ClientOptions) *Client {
 		clientSubnet:     options.ClientSubnet,
 		cacheMinTTL:      options.CacheMinTTL,
 		cacheMaxTTL:      options.CacheMaxTTL,
+		cacheStaleTTL:    options.CacheStaleTTL,
+		cacheUseStaleTTL: options.CacheStaleTTL > 0,
 		initRDRCFunc:     options.RDRC,
 		logger:           options.Logger,
 	}
@@ -233,7 +249,7 @@ func (c *Client) Exchange(ctx context.Context, transport adapter.DNSTransport, m
 			len(message.Extra[0].(*dns.OPT).Option) == 0) &&
 		!options.ClientSubnet.IsValid()
 	disableCache := !isSimpleRequest || c.disableCache || options.DisableCache
-	if !disableCache {
+	if !disableCache && !options.ExchangeWithoutCache {
 		if c.cache != nil {
 			cond, loaded := c.cacheLock.LoadOrStore(question, make(chan struct{}))
 			if loaded {
@@ -263,9 +279,28 @@ func (c *Client) Exchange(ctx context.Context, transport adapter.DNSTransport, m
 				}()
 			}
 		}
-		response, ttl := c.loadResponse(question, transport)
-		if response != nil {
-			logCachedResponse(c.logger, ctx, response, ttl)
+		cacheM, stale := c.loadResponse(question, transport)
+		if cacheM != nil {
+			response := cacheM.Copy()
+			nowTTL := uint32(time.Until(cacheM.GetExpire()).Seconds())
+			if !c.disableExpire {
+				if stale {
+					setMsgTTL(response, 0)
+					addMsgStaleAnswerOpt(response)
+					if cacheM.updating.CompareAndSwap(false, true) {
+						options.ExchangeWithoutCache = true
+						c.logger.DebugContext(ctx, "updating stale cache ", question.Name)
+						go func() {
+							ctx, cancel := context.WithTimeout(context.Background(), C.DNSTimeout)
+							defer cancel()
+							_, _ = c.Exchange(ctx, transport, message, options, responseChecker)
+						}()
+					}
+				} else {
+					updateMsgTTL(response, nowTTL)
+				}
+			}
+			logCachedResponse(c.logger, ctx, response, int(nowTTL))
 			response.Id = message.Id
 			return response, nil
 		}
@@ -496,13 +531,19 @@ func (c *Client) storeCache(transport adapter.DNSTransport, question dns.Questio
 			}, c.newDnsMsg(message))
 		}
 	} else {
+		cacheM := c.newDnsMsg(message)
+		lifetime := time.Second * time.Duration(timeToLive)
+		cacheM.SetExpire(time.Now().Add(lifetime))
+		if c.cacheUseStaleTTL {
+			lifetime = lifetime + (time.Second * time.Duration(c.cacheStaleTTL))
+		}
 		if !c.independentCache {
-			c.cache.AddWithLifetime(question, c.newDnsMsg(message), time.Second*time.Duration(timeToLive))
+			c.cache.AddWithLifetime(question, cacheM, lifetime)
 		} else {
 			c.transportCache.AddWithLifetime(transportCacheKey{
 				Question:     question,
 				transportTag: transport.Tag(),
-			}, c.newDnsMsg(message), time.Second*time.Duration(timeToLive))
+			}, cacheM, lifetime)
 		}
 	}
 }
@@ -515,9 +556,28 @@ func (c *Client) lookupToExchange(ctx context.Context, transport adapter.DNSTran
 	}
 	disableCache := c.disableCache || options.DisableCache
 	if !disableCache {
-		cachedAddresses, err := c.questionCache(question, transport)
-		if err != ErrNotCached {
-			return cachedAddresses, err
+		cacheM, stale := c.loadResponse(question, transport)
+		if cacheM != nil {
+			if !c.disableExpire {
+				if stale {
+					if cacheM.updating.CompareAndSwap(false, true) {
+						options.ExchangeWithoutCache = true
+						message := &dns.Msg{
+							MsgHdr: dns.MsgHdr{
+								RecursionDesired: true,
+							},
+							Question: []dns.Question{question},
+						}
+						c.logger.DebugContext(ctx, "updating stale cache ", question.Name)
+						go func() {
+							ctx, cancel := context.WithTimeout(context.Background(), C.DNSTimeout)
+							defer cancel()
+							_, _ = c.Exchange(ctx, transport, message, options, responseChecker)
+						}()
+					}
+				}
+			}
+			return MessageToAddresses(cacheM.Copy()), nil
 		}
 	}
 	message := dns.Msg{
@@ -541,16 +601,15 @@ func (c *Client) questionCache(question dns.Question, transport adapter.DNSTrans
 	if response == nil {
 		return nil, ErrNotCached
 	}
-	if response.Rcode != dns.RcodeSuccess {
-		return nil, RcodeError(response.Rcode)
+	if response.msg.Rcode != dns.RcodeSuccess {
+		return nil, RcodeError(response.msg.Rcode)
 	}
-	return MessageToAddresses(response), nil
+	return MessageToAddresses(response.msg), nil
 }
 
-func (c *Client) loadResponse(question dns.Question, transport adapter.DNSTransport) (*dns.Msg, int) {
+func (c *Client) loadResponse(question dns.Question, transport adapter.DNSTransport) (*dnsMsg, bool) {
 	var (
 		cacheM   *dnsMsg
-		response *dns.Msg
 		loaded   bool
 	)
 	if c.disableExpire {
@@ -563,9 +622,9 @@ func (c *Client) loadResponse(question dns.Question, transport adapter.DNSTransp
 			})
 		}
 		if !loaded {
-			return nil, 0
+			return nil, false
 		}
-		return cacheM.Copy(), 0
+		return cacheM, false
 	} else {
 		var expireAt time.Time
 		if !c.independentCache {
@@ -577,7 +636,7 @@ func (c *Client) loadResponse(question dns.Question, transport adapter.DNSTransp
 			})
 		}
 		if !loaded {
-			return nil, 0
+			return nil, false
 		}
 		timeNow := time.Now()
 		if timeNow.After(expireAt) {
@@ -589,36 +648,9 @@ func (c *Client) loadResponse(question dns.Question, transport adapter.DNSTransp
 					transportTag: transport.Tag(),
 				})
 			}
-			return nil, 0
+			return nil, false
 		}
-		response = cacheM.Copy()
-		var originTTL int
-		for _, recordList := range [][]dns.RR{response.Answer, response.Ns, response.Extra} {
-			for _, record := range recordList {
-				if originTTL == 0 || record.Header().Ttl > 0 && int(record.Header().Ttl) < originTTL {
-					originTTL = int(record.Header().Ttl)
-				}
-			}
-		}
-		nowTTL := int(expireAt.Sub(timeNow).Seconds())
-		if nowTTL < 0 {
-			nowTTL = 0
-		}
-		if originTTL > 0 {
-			duration := uint32(originTTL - nowTTL)
-			for _, recordList := range [][]dns.RR{response.Answer, response.Ns, response.Extra} {
-				for _, record := range recordList {
-					record.Header().Ttl = record.Header().Ttl - duration
-				}
-			}
-		} else {
-			for _, recordList := range [][]dns.RR{response.Answer, response.Ns, response.Extra} {
-				for _, record := range recordList {
-					record.Header().Ttl = uint32(nowTTL)
-				}
-			}
-		}
-		return response, nowTTL
+		return cacheM, c.cacheUseStaleTTL && timeNow.After(cacheM.GetExpire())
 	}
 }
 
@@ -796,4 +828,50 @@ func FixedResponseMX(id uint16, question dns.Question, records []*net.MX, timeTo
 		})
 	}
 	return &response
+}
+
+func addMsgStaleAnswerOpt(msg *dns.Msg) {
+	opt := msg.IsEdns0()
+	if opt == nil {
+		opt = &dns.OPT{
+			Hdr: dns.RR_Header{
+				Name:   ".",
+				Rrtype: dns.TypeOPT,
+			},
+		}
+		opt.SetUDPSize(4096) // Default UDP size
+		msg.Extra = append(msg.Extra, opt)
+	}
+	opt.Option = append(opt.Option, &dns.EDNS0_EDE{
+		InfoCode: dns.ExtendedErrorCodeStaleAnswer,
+	})
+}
+
+func originMsgTTL(msg *dns.Msg) uint32 {
+	var originTTL uint32
+	for _, recordList := range [][]dns.RR{msg.Answer, msg.Ns, msg.Extra} {
+		for _, record := range recordList {
+			if originTTL == 0 || record.Header().Ttl > 0 && record.Header().Ttl < originTTL {
+				originTTL = record.Header().Ttl
+			}
+		}
+	}
+	return originTTL
+}
+
+func setMsgTTL(msg *dns.Msg, ttl uint32) {
+	for _, recordList := range [][]dns.RR{msg.Answer, msg.Ns, msg.Extra} {
+		for _, record := range recordList {
+			record.Header().Ttl = ttl
+		}
+	}
+}
+
+func updateMsgTTL(msg *dns.Msg, nowTTL uint32) {
+	duration := originMsgTTL(msg) - nowTTL
+	for _, recordList := range [][]dns.RR{msg.Answer, msg.Ns, msg.Extra} {
+		for _, record := range recordList {
+			record.Header().Ttl = record.Header().Ttl - duration
+		}
+	}
 }

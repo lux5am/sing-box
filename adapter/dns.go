@@ -37,6 +37,7 @@ type DNSQueryOptions struct {
 	DisableCache   bool
 	RewriteTTL     *uint32
 	ClientSubnet   netip.Prefix
+	ExchangeWithoutCache bool
 }
 
 func DNSQueryOptionsFrom(ctx context.Context, options *option.DomainResolveOptions) (*DNSQueryOptions, error) {

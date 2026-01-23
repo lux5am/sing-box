@@ -6,12 +6,19 @@ import (
 	"net"
 	"net/http"
 	"sync/atomic"
+	"time"
 
 	"github.com/sagernet/sing-box/common/tls"
 	E "github.com/sagernet/sing/common/exceptions"
 	M "github.com/sagernet/sing/common/metadata"
 
 	"golang.org/x/net/http2"
+)
+
+const (
+	transportIdleConnTimeout = 5 * time.Minute
+	transportMaxIdleConns    = 2
+	transportMaxConnsPerHost = 2
 )
 
 var errFallback = E.New("fallback to HTTP/1.1")
@@ -39,11 +46,15 @@ func NewHTTPSTransportWrapper(dialer tls.Dialer, serverAddr M.Socksaddr) *HTTPST
 				fallback.Store(true)
 				return nil, errFallback
 			},
+			IdleConnTimeout: transportIdleConnTimeout,
 		},
 		httpTransport: &http.Transport{
 			DialTLSContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
 				return dialer.DialTLSContext(ctx, serverAddr)
 			},
+			IdleConnTimeout: transportIdleConnTimeout,
+			MaxIdleConns:    transportMaxIdleConns,
+			MaxConnsPerHost: transportMaxConnsPerHost,
 		},
 		fallback: &fallback,
 	}
@@ -70,11 +81,14 @@ func (h *HTTPSTransportWrapper) CloseIdleConnections() {
 }
 
 func (h *HTTPSTransportWrapper) Clone() *HTTPSTransportWrapper {
+	var fallback atomic.Bool
+	fallback.Store(h.fallback.Load())
 	return &HTTPSTransportWrapper{
-		httpTransport: h.httpTransport,
+		httpTransport: h.httpTransport.Clone(),
 		http2Transport: &http2.Transport{
-			DialTLSContext: h.http2Transport.DialTLSContext,
+			DialTLSContext:  h.http2Transport.DialTLSContext,
+			IdleConnTimeout: h.http2Transport.IdleConnTimeout,
 		},
-		fallback: h.fallback,
+		fallback: &fallback,
 	}
 }

@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 
 	"github.com/sagernet/sing-box/common/tls"
+	C "github.com/sagernet/sing-box/constant"
 	E "github.com/sagernet/sing/common/exceptions"
 	M "github.com/sagernet/sing/common/metadata"
 	N "github.com/sagernet/sing/common/network"
@@ -48,6 +49,7 @@ func NewHTTPSTransportWrapper(dialer N.Dialer, serverAddr M.Socksaddr, fallback 
 			}
 			return wrapper.trackConn(resultConn)
 		},
+		IdleConnTimeout: C.HTTPTransportIdleConnTimeout,
 	}
 	wrapper.httpTransport = &http.Transport{
 		DialContext: func(ctx context.Context, _, addr string) (net.Conn, error) {
@@ -64,6 +66,7 @@ func NewHTTPSTransportWrapper(dialer N.Dialer, serverAddr M.Socksaddr, fallback 
 			}
 			return wrapper.trackConn(resultConn)
 		},
+		IdleConnTimeout: C.HTTPTransportIdleConnTimeout,
 	}
 	return wrapper
 }

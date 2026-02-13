@@ -163,7 +163,7 @@ func (p *LocalProvider) UpdateProvider(ctx context.Context, router adapter.Route
 	p.lastUpdated = fileModeTime
 	p.logger.InfoContext(ctx, "update outbound provider ", p.tag, " success")
 
-	if updated {
+	if updated && p.enableHealthcheck {
 		p.CheckOutbounds(true)
 	}
 	return nil

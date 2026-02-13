@@ -288,7 +288,7 @@ func (p *RemoteProvider) fetchOnce(ctx context.Context, router adapter.Router) e
 
 	os.WriteFile(p.path, []byte(content), 0o666)
 
-	if updated {
+	if updated && p.enableHealthcheck {
 		p.CheckOutbounds(true)
 	}
 	return nil

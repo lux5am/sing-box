@@ -1,0 +1,204 @@
+name: Build SFA
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version name"
+        required: true
+        type: string
+  push:
+    branches:
+      - dev-next
+      - main-next
+
+jobs:
+  calculate-version:
+    runs-on: ubuntu-latest
+    outputs:
+      rev: ${{ steps.outputs.outputs.rev }}
+      tag: ${{ steps.outputs.outputs.tag }}
+      version: ${{ steps.outputs.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Check input version
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "TAG=${{ inputs.version }}" >> $GITHUB_ENV
+
+      - name: Get version
+        if: github.event_name != 'workflow_dispatch'
+        run: |
+          git remote add upstream "https://github.com/SagerNet/sing-box.git"
+          git fetch --tags --force upstream
+          if [[ "${{ github.ref_name }}" == "dev"* ]]; then
+            TAG="$(git tag --sort=-v:refname | sed -n '1p')"
+          else
+            TAG="$(git describe --tags --abbrev=0 upstream/${{ github.ref_name }})"
+          fi
+          echo "TAG=${TAG}" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Set outputs
+        id: outputs
+        run: |
+          REV="$(git rev-parse --short HEAD)"
+          echo "rev=${REV}" >> $GITHUB_OUTPUT
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "version=${TAG}-${REV}" >> $GITHUB_OUTPUT
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          submodules: 'recursive'
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ~1.25.7
+
+      - name: Setup Android NDK
+        id: setup-ndk
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r28
+
+      - name: Setup OpenJDK
+        run: |-
+          sudo apt update && sudo apt install -y openjdk-17-jdk-headless
+          /usr/lib/jvm/java-17-openjdk-amd64/bin/java --version
+
+      - name: Build library
+        run: |-
+          go mod tidy
+          make lib_install
+          export PATH="$PATH:$(go env GOPATH)/bin"
+          make lib_android
+        env:
+          JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+
+      - name: Checkout app repository
+        if: github.ref == 'refs/heads/main-next' && github.event_name != 'workflow_dispatch'
+        run: |-
+          cd clients/android
+          if [ "${{ github.ref_name }}" == "dev-next" ]; then
+            git checkout dev
+          else
+            git checkout main
+          fi
+
+      - name: Gradle cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle
+          key: gradle-${{ hashFiles('**/*.gradle') }}
+
+      - name: Update version
+        run: |-
+          cd clients/android
+          source version.properties
+          echo "VERSION_CODE=${VERSION_CODE}" > version.properties
+          echo "VERSION_NAME=${{needs.calculate-version.outputs.version}}" >> version.properties
+          echo "GO_VERSION=$(go version | awk '{print $3}')" >> version.properties
+
+      - name: Build
+        run: |-
+          mkdir clients/android/app/libs
+          cp *.aar clients/android/app/libs
+          cd clients/android
+          echo -n "$RELEASE_KEYSTORE" | base64 --decode > app/release.keystore
+          ./gradlew :app:assembleOtherRelease :app:assembleOtherLegacyRelease
+        env:
+          JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          LOCAL_PROPERTIES: ${{ secrets.LOCAL_PROPERTIES }}
+          RELEASE_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE }}
+
+      - name: Prepare upload
+        run: |-
+          mkdir -p dist
+          #cp clients/android/app/build/outputs/apk/play/release/*.apk dist
+          cp clients/android/app/build/outputs/apk/other/release/*.apk dist
+          cp clients/android/app/build/outputs/apk/otherLegacy/release/*.apk dist
+          VERSION_CODE=$(grep VERSION_CODE clients/android/version.properties | cut -d= -f2)
+          VERSION_NAME=$(grep VERSION_NAME clients/android/version.properties | cut -d= -f2)
+          cat > dist/SFA-version-metadata.json << EOF
+          {
+            "version_code": "${VERSION_CODE}",
+            "version_name": "${VERSION_NAME}"
+          }
+          EOF
+          cat dist/SFA-version-metadata.json
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-android-apks
+          path: dist
+
+  Upload-Release:
+    permissions: write-all
+    if: ${{ github.ref_type == 'branch' && !startsWith(github.event_name, 'pull_request') }}
+    needs: 
+      - calculate-version
+      - build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Display structure of downloaded files
+        run: ls -R
+        working-directory: dist
+
+      - name: Set Env
+        run: |
+          echo "BUILDTIME=$(TZ=Asia/Shanghai date)" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Tag Repo
+        uses: richardsimko/update-tag@v1
+        with:
+          tag_name: ${{ needs.calculate-version.outputs.tag }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - run: |
+          cat > release.txt << 'EOF'
+          Release created at  ${{ env.BUILDTIME }}
+          EOF
+
+      - name: Upload Prerelease
+        uses: softprops/action-gh-release@v1
+        if: ${{  success() && github.ref_name == 'dev-next' }}
+        with:
+          tag_name: ${{ needs.calculate-version.outputs.tag }}
+          files: |
+            dist/*
+          prerelease: true
+          generate_release_notes: true
+          body_path: release.txt
+
+      - name: Upload Release
+        uses: softprops/action-gh-release@v1
+        if: ${{  success() && github.ref_name != 'dev-next' }}
+        with:
+          tag_name: ${{ needs.calculate-version.outputs.tag }}
+          files: |
+            dist/*
+          prerelease: false
+          generate_release_notes: true
+          body_path: release.txt

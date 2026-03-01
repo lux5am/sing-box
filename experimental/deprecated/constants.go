@@ -102,6 +102,24 @@ var OptionLegacyDomainStrategyOptions = Note{
 	MigrationLink:     "https://sing-box.sagernet.org/migration/#migrate-domain-strategy-options",
 }
 
+var OptionWireGuardOutbound = Note{
+	Name:              "wireguard-outbound",
+	Description:       "legacy wireguard outbound",
+	DeprecatedVersion: "1.11.0",
+	ScheduledVersion:  "1.13.0",
+	EnvName:           "WIREGUARD_OUTBOUND",
+	MigrationLink:     "https://sing-box.sagernet.org/migration/#migrate-wireguard-outbound-to-endpoint",
+}
+
+var OptionWireGuardGSO = Note{
+	Name:              "wireguard-gso",
+	Description:       "GSO option in wireguard outbound",
+	DeprecatedVersion: "1.11.0",
+	ScheduledVersion:  "1.13.0",
+	EnvName:           "WIREGUARD_GSO",
+	MigrationLink:     "https://sing-box.sagernet.org/migration/#migrate-wireguard-outbound-to-endpoint",
+}
+
 var Options = []Note{
 	OptionLegacyDNSTransport,
 	OptionLegacyDNSFakeIPOptions,

@@ -219,3 +219,7 @@ type MDNSDNSServerOptions struct {
 	LocalDNSServerOptions
 	Interface badoption.Listable[string] `json:"interface,omitempty"`
 }
+
+type GroupDNSServerOptions struct {
+	Servers []string `json:"servers"`
+}

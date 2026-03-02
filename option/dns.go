@@ -438,3 +438,7 @@ type DHCPDNSServerOptions struct {
 	LocalDNSServerOptions
 	Interface string `json:"interface,omitempty"`
 }
+
+type GroupDNSServerOptions struct {
+	Servers []string `json:"servers"`
+}

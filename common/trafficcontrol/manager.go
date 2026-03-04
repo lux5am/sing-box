@@ -34,12 +34,15 @@ var (
 	_ adapter.LifecycleService  = (*Manager)(nil)
 )
 
+var (
+	uploadTotal   int64
+	downloadTotal int64
+)
+
 type Manager struct {
 	connections             compatible.Map[uuid.UUID, Tracker]
 	closedConnectionsAccess sync.Mutex
 	closedConnections       list.List[TrackerMetadata]
-	closedUploadTotal       int64
-	closedDownloadTotal     int64
 
 	eventSubscriber *observable.Subscriber[ConnectionEvent]
 	eventObserver   *observable.Observer[ConnectionEvent]
@@ -105,8 +108,8 @@ func (m *Manager) leave(tracker Tracker) {
 	metadataCopy := *metadata
 	if m.closedConnections.Len() >= closedConnectionsLimit {
 		evicted := m.closedConnections.PopFront()
-		m.closedUploadTotal += evicted.Upload.Load()
-		m.closedDownloadTotal += evicted.Download.Load()
+		uploadTotal += evicted.Upload.Load()
+		downloadTotal += evicted.Download.Load()
 	}
 	m.closedConnections.PushBack(metadataCopy)
 	m.closedConnectionsAccess.Unlock()
@@ -121,8 +124,8 @@ func (m *Manager) leave(tracker Tracker) {
 func (m *Manager) Total() (uplinkTotal int64, downlinkTotal int64) {
 	m.closedConnectionsAccess.Lock()
 	defer m.closedConnectionsAccess.Unlock()
-	uplinkTotal = m.closedUploadTotal
-	downlinkTotal = m.closedDownloadTotal
+	uplinkTotal = uploadTotal
+	downlinkTotal = downloadTotal
 	for element := m.closedConnections.Front(); element != nil; element = element.Next() {
 		uplinkTotal += element.Value.Upload.Load()
 		downlinkTotal += element.Value.Download.Load()
@@ -182,8 +185,8 @@ func (m *Manager) Clear() {
 	m.closedConnectionsAccess.Lock()
 	defer m.closedConnectionsAccess.Unlock()
 	for element := m.closedConnections.Front(); element != nil; element = element.Next() {
-		m.closedUploadTotal += element.Value.Upload.Load()
-		m.closedDownloadTotal += element.Value.Download.Load()
+		uploadTotal += element.Value.Upload.Load()
+		downloadTotal += element.Value.Download.Load()
 	}
 	m.closedConnections.Init()
 }

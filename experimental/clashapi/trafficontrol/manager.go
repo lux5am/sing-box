@@ -16,6 +16,11 @@ import (
 	"github.com/gofrs/uuid/v5"
 )
 
+var (
+	uploadTotal   atomic.Int64
+	downloadTotal atomic.Int64
+)
+
 type ConnectionEventType int
 
 const (
@@ -36,9 +41,6 @@ type ConnectionEvent struct {
 const closedConnectionsLimit = 1000
 
 type Manager struct {
-	uploadTotal   atomic.Int64
-	downloadTotal atomic.Int64
-
 	connections             compatible.Map[uuid.UUID, Tracker]
 	closedConnectionsAccess sync.Mutex
 	closedConnections       list.List[TrackerMetadata]
@@ -92,15 +94,15 @@ func (m *Manager) Leave(c Tracker) {
 }
 
 func (m *Manager) PushUploaded(size int64) {
-	m.uploadTotal.Add(size)
+	uploadTotal.Add(size)
 }
 
 func (m *Manager) PushDownloaded(size int64) {
-	m.downloadTotal.Add(size)
+	downloadTotal.Add(size)
 }
 
 func (m *Manager) Total() (up int64, down int64) {
-	return m.uploadTotal.Load(), m.downloadTotal.Load()
+	return uploadTotal.Load(), downloadTotal.Load()
 }
 
 func (m *Manager) ConnectionsLen() int {
@@ -152,16 +154,16 @@ func (m *Manager) Snapshot() *Snapshot {
 	m.memory = memStats.StackInuse + memStats.HeapInuse + memStats.HeapIdle - memStats.HeapReleased
 
 	return &Snapshot{
-		Upload:      m.uploadTotal.Load(),
-		Download:    m.downloadTotal.Load(),
+		Upload:      uploadTotal.Load(),
+		Download:    downloadTotal.Load(),
 		Connections: connections,
 		Memory:      m.memory,
 	}
 }
 
 func (m *Manager) ResetStatistic() {
-	m.uploadTotal.Store(0)
-	m.downloadTotal.Store(0)
+	uploadTotal.Store(0)
+	downloadTotal.Store(0)
 }
 
 type Snapshot struct {

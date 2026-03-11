@@ -24,7 +24,10 @@ type ClashConfig struct {
 
 func convertTLSOptions(proxy map[string]any) *option.OutboundTLSOptions {
 	var enableTLS bool
-	if proxy["type"] == "trojan" {
+	if protocol, exists := proxy["type"].(string); exists && protocol == "trojan" {
+		enableTLS = true
+	}
+	if network, exists := proxy["network"].(string); exists && network == "h2" {
 		enableTLS = true
 	}
 	if tls, exists := proxy["tls"].(bool); exists {
@@ -255,6 +258,12 @@ func convertHTTPTransport(proxy map[string]any) option.V2RayHTTPOptions {
 				options.Headers[key] = valueArr
 			}
 		}
+		if pingInterval, exists := httpOpts["ping-interval"].(int); exists {
+			options.IdleTimeout = badoption.Duration(time.Duration(pingInterval) * time.Second)
+		}
+		if pingTimeout, exists := httpOpts["ping-timeout"].(int); exists {
+			options.PingTimeout = badoption.Duration(time.Duration(pingTimeout) * time.Second)
+		}
 	}
 	return options
 }
@@ -283,8 +292,48 @@ func convertGRPCTransport(proxy map[string]any) option.V2RayGRPCOptions {
 		if servername, exists := grpcOpts["grpc-service-name"].(string); exists {
 			options.ServiceName = servername
 		}
+		if pingInterval, exists := grpcOpts["ping-interval"].(int); exists {
+			options.IdleTimeout = badoption.Duration(time.Duration(pingInterval) * time.Second)
+		}
+		if pingTimeout, exists := grpcOpts["ping-timeout"].(int); exists {
+			options.PingTimeout = badoption.Duration(time.Duration(pingTimeout) * time.Second)
+		}
 	}
 	return options
+}
+
+func convertV2RayTransportOptions(proxy map[string]any) *option.V2RayTransportOptions {
+	network, exists := proxy["network"].(string)
+	if !exists {
+		return nil
+	}
+	transport := option.V2RayTransportOptions{}
+	switch network {
+	case "ws":
+		isHTTPUpgrade := false
+		if wsOpts, exists := proxy["ws-opts"].(map[string]any); exists {
+			if ok, exists := wsOpts["v2ray-http-upgrade"].(bool); exists && ok {
+				isHTTPUpgrade = true
+			}
+		}
+		if isHTTPUpgrade {
+			transport.Type = C.V2RayTransportTypeHTTPUpgrade
+			transport.HTTPUpgradeOptions = convertHTTPUpgradeTransport(proxy)
+		} else {
+			transport.Type = C.V2RayTransportTypeWebsocket
+			transport.WebsocketOptions = convertWSTransport(proxy)
+		}
+	case "http":
+		transport.Type = C.V2RayTransportTypeHTTP
+		transport.HTTPOptions = convertHTTPTransport(proxy)
+	case "h2":
+		transport.Type = C.V2RayTransportTypeHTTP
+		transport.HTTPOptions = convertH2Transport(proxy)
+	case "grpc":
+		transport.Type = C.V2RayTransportTypeGRPC
+		transport.GRPCOptions = convertGRPCTransport(proxy)
+	}
+	return &transport
 }
 
 func convertDialerOption(proxy map[string]any) option.DialerOptions {
@@ -692,37 +741,8 @@ func newVMessClashParser(proxy map[string]any) (option.Outbound, error) {
 		options.Security = cipher
 	}
 	options.TLS = convertTLSOptions(proxy)
+	options.Transport = convertV2RayTransportOptions(proxy)
 	options.Multiplex = convertSMuxOptions(proxy)
-	if network, exists := proxy["network"].(string); exists {
-		Transport := option.V2RayTransportOptions{}
-		switch network {
-		case "ws":
-			isHTTPUpgrade := false
-			if wsOpts, exists := proxy["ws-opts"].(map[string]any); exists {
-				if ok, exists := wsOpts["v2ray-http-upgrade"].(bool); exists && ok {
-					isHTTPUpgrade = true
-				}
-			}
-			if isHTTPUpgrade {
-				Transport.Type = C.V2RayTransportTypeHTTPUpgrade
-				Transport.HTTPUpgradeOptions = convertHTTPUpgradeTransport(proxy)
-			} else {
-				Transport.Type = C.V2RayTransportTypeWebsocket
-				Transport.WebsocketOptions = convertWSTransport(proxy)
-			}
-		case "http":
-			Transport.Type = C.V2RayTransportTypeHTTP
-			Transport.HTTPOptions = convertHTTPTransport(proxy)
-		case "h2":
-			options.TLS.Enabled = true
-			Transport.Type = C.V2RayTransportTypeHTTP
-			Transport.HTTPOptions = convertH2Transport(proxy)
-		case "grpc":
-			Transport.Type = C.V2RayTransportTypeGRPC
-			Transport.GRPCOptions = convertGRPCTransport(proxy)
-		}
-		options.Transport = &Transport
-	}
 	options.DialerOptions = convertDialerOption(proxy)
 	outbound.Options = &options
 	return outbound, nil
@@ -748,19 +768,8 @@ func newVLESSClashParser(proxy map[string]any) (option.Outbound, error) {
 	if flow, exists := proxy["flow"].(string); exists && flow == "xtls-rprx-vision" {
 		options.Flow = "xtls-rprx-vision"
 	}
-	if network, exists := proxy["network"].(string); exists {
-		Transport := option.V2RayTransportOptions{}
-		switch network {
-		case "ws":
-			Transport.Type = C.V2RayTransportTypeWebsocket
-			Transport.WebsocketOptions = convertWSTransport(proxy)
-		case "grpc":
-			Transport.Type = C.V2RayTransportTypeGRPC
-			Transport.GRPCOptions = convertGRPCTransport(proxy)
-		}
-		options.Transport = &Transport
-	}
 	options.TLS = convertTLSOptions(proxy)
+	options.Transport = convertV2RayTransportOptions(proxy)
 	options.Multiplex = convertSMuxOptions(proxy)
 	options.DialerOptions = convertDialerOption(proxy)
 	outbound.Options = &options
@@ -819,19 +828,8 @@ func newTrojanClashParser(proxy map[string]any) (option.Outbound, error) {
 	if password, exists := proxy["password"].(string); exists {
 		options.Password = password
 	}
-	if network, exists := proxy["network"].(string); exists {
-		Transport := option.V2RayTransportOptions{}
-		switch network {
-		case "ws":
-			Transport.Type = C.V2RayTransportTypeWebsocket
-			Transport.WebsocketOptions = convertWSTransport(proxy)
-		case "grpc":
-			Transport.Type = C.V2RayTransportTypeGRPC
-			Transport.GRPCOptions = convertGRPCTransport(proxy)
-		}
-		options.Transport = &Transport
-	}
 	options.TLS = convertTLSOptions(proxy)
+	options.Transport = convertV2RayTransportOptions(proxy)
 	options.Multiplex = convertSMuxOptions(proxy)
 	options.DialerOptions = convertDialerOption(proxy)
 	outbound.Options = &options

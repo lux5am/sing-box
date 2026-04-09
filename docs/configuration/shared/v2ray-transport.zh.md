@@ -152,6 +152,9 @@ HTTP 请求的额外标头
   "service_name": "TunService",
   "idle_timeout": "15s",
   "ping_timeout": "15s",
+  "max_connections": 4,
+  "min_streams": 4,
+  "max_streams": 0,
   "permit_without_stream": false
 }
 ```
@@ -179,6 +182,24 @@ gRPC 服务名称。
 在默认 gRPC 服务器/客户端：
 
 它的行为与 HTTP 传输层中的相应设置相同。
+
+#### max_connections
+
+最大连接数量。
+
+与 `max_streams` 冲突。
+
+#### min_streams
+
+在打开新连接之前，连接中的最小多路复用流数量。
+
+与 `max_streams` 冲突。
+
+#### max_streams
+
+在打开新连接之前，连接中的最大多路复用流数量。
+
+与 `max_connections` 和 `min_streams` 冲突。
 
 #### permit_without_stream
 

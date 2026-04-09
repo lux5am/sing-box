@@ -20,6 +20,7 @@ const (
 	TLSFragmentFallbackDelay   = 500 * time.Millisecond
 
 	HTTPTransportIdleConnTimeout = 5 * time.Minute
+	GRPCTransportCleanUpInterval = 5 * time.Minute
 )
 
 var PortProtocols = map[uint16]string{

@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/sagernet/sing/common"
@@ -28,6 +29,8 @@ type GunConn struct {
 	create        chan struct{}
 	err           error
 	readRemaining int
+	onCloseOnce   func()
+	closeOnce     sync.Once
 }
 
 func newGunConn(reader io.Reader, writer io.Writer, flusher http.Flusher) *GunConn {
@@ -47,6 +50,9 @@ func newLateGunConn(writer io.Writer) *GunConn {
 }
 
 func (c *GunConn) setup(reader io.Reader, err error) {
+	if err != nil && c.onCloseOnce != nil {
+		c.closeOnce.Do(c.onCloseOnce)
+	}
 	if reader != nil {
 		c.rawReader = reader
 		c.reader = std_bufio.NewReader(reader)
@@ -141,6 +147,9 @@ func (c *GunConn) FrontHeadroom() int {
 }
 
 func (c *GunConn) Close() error {
+	if c.onCloseOnce != nil {
+		c.closeOnce.Do(c.onCloseOnce)
+	}
 	return common.Close(c.rawReader, c.writer)
 }
 

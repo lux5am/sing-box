@@ -159,6 +159,9 @@ It needs to be consistent with the server.
   "service_name": "TunService",
   "idle_timeout": "15s",
   "ping_timeout": "15s",
+  "max_connections": 4,
+  "min_streams": 4,
+  "max_streams": 0,
   "permit_without_stream": false
 }
 ```
@@ -189,6 +192,26 @@ In default gRPC server/client:
 
 It has the same behavior as the corresponding setting in HTTP transport.
 
+Disabled by default.
+
+#### max_connections
+
+Maximum connections.
+
+Conflict with `max_streams`.
+
+#### min_streams
+
+Minimum multiplexed streams in a connection before opening a new connection.
+
+Conflict with `max_streams`.
+
+#### max_streams
+
+Maximum multiplexed streams in a connection before opening a new connection.
+
+Conflict with `max_connections` and `min_streams`.
+
 #### permit_without_stream
 
 In standard gRPC client:
@@ -196,8 +219,6 @@ In standard gRPC client:
 If enabled, the client transport sends keepalive pings even with no active connections.
 If disabled, when there are no active connections, `idle_timeout` and `ping_timeout` will be ignored and no keepalive
 pings will be sent.
-
-Disabled by default.
 
 ### HTTPUpgrade
 

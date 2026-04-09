@@ -305,6 +305,15 @@ func convertGRPCTransport(proxy map[string]any) option.V2RayGRPCOptions {
 		if pingTimeout, exists := grpcOpts["ping-timeout"].(int); exists {
 			options.PingTimeout = badoption.Duration(time.Duration(pingTimeout) * time.Second)
 		}
+		if maxConnections, exists := grpcOpts["max-connections"].(int); exists {
+			options.MaxConnections = maxConnections
+		}
+		if minStreams, exists := grpcOpts["min-streams"].(int); exists {
+			options.MinStreams = minStreams
+		}
+		if maxStreams, exists := grpcOpts["max-streams"].(int); exists {
+			options.MaxStreams = maxStreams
+		}
 	}
 	return options
 }

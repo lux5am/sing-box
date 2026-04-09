@@ -34,6 +34,8 @@ type GunConn struct {
 	onClose       func()
 	access        sync.Mutex
 	closed        bool
+	onCloseConn   func()
+	closeConn     sync.Once
 }
 
 func newGunConn(reader io.Reader, writer io.Writer, flusher http.Flusher) *GunConn {
@@ -54,6 +56,9 @@ func newLateGunConn(writer io.Writer, cancel context.CancelFunc) *GunConn {
 }
 
 func (c *GunConn) setup(reader io.Reader, err error) {
+	if err != nil && c.onCloseConn != nil {
+		c.closeConn.Do(c.onCloseConn)
+	}
 	c.access.Lock()
 	closed := c.closed
 	if closed {
@@ -161,6 +166,9 @@ func (c *GunConn) Close() error {
 	if c.closed {
 		c.access.Unlock()
 		return net.ErrClosed
+	}
+	if c.onCloseConn != nil {
+		c.closeConn.Do(c.onCloseConn)
 	}
 	c.closed = true
 	reader := c.rawReader

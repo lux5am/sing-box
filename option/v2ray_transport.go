@@ -91,6 +91,9 @@ type V2RayGRPCOptions struct {
 	PingTimeout         badoption.Duration `json:"ping_timeout,omitempty"`
 	PermitWithoutStream bool               `json:"permit_without_stream,omitempty"`
 	ForceLite           bool               `json:"-"` // for test
+	MaxConnections      int                `json:"max_connections,omitempty"`
+	MinStreams          int                `json:"min_streams,omitempty"`
+	MaxStreams          int                `json:"max_streams,omitempty"`
 }
 
 type V2RayHTTPUpgradeOptions struct {

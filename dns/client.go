@@ -247,6 +247,23 @@ func normalizeTTL(response *dns.Msg, timeToLive uint32) {
 	}
 }
 
+func addMsgStaleAnswerOpt(msg *dns.Msg) {
+	opt := msg.IsEdns0()
+	if opt == nil {
+		opt = &dns.OPT{
+			Hdr: dns.RR_Header{
+				Name:   ".",
+				Rrtype: dns.TypeOPT,
+			},
+		}
+		opt.SetUDPSize(4096) // Default UDP size
+		msg.Extra = append(msg.Extra, opt)
+	}
+	opt.Option = append(opt.Option, &dns.EDNS0_EDE{
+		InfoCode: dns.ExtendedErrorCodeStaleAnswer,
+	})
+}
+
 func (c *Client) Exchange(ctx context.Context, transport adapter.DNSTransport, message *dns.Msg, options adapter.DNSQueryOptions, responseChecker func(response *dns.Msg) bool) (*dns.Msg, error) {
 	if len(message.Question) == 0 {
 		if c.logger != nil {
@@ -512,6 +529,7 @@ func (c *Client) loadResponse(question dns.Question, transport adapter.DNSTransp
 	if timeNow.After(expireAt) {
 		if c.optimisticTimeout > 0 && timeNow.Before(expireAt.Add(c.optimisticTimeout)) {
 			resp := response.Copy()
+			addMsgStaleAnswerOpt(resp)
 			normalizeTTL(resp, 1)
 			return resp, 0, true
 		}
@@ -543,6 +561,7 @@ func (c *Client) loadPersistentResponse(question dns.Question, transport adapter
 	timeNow := time.Now()
 	if timeNow.After(expireAt) {
 		if c.optimisticTimeout > 0 && timeNow.Before(expireAt.Add(c.optimisticTimeout)) {
+			addMsgStaleAnswerOpt(response)
 			normalizeTTL(response, 1)
 			return response, 0, true
 		}

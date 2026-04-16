@@ -50,6 +50,7 @@
       "tag": "", // or []
       "format": "source", // or binary
       "url": "",
+      "path": "",
       "initial_path": "",
       "http_client": "", // or {}
       "update_interval": "",
@@ -116,6 +117,16 @@ Optional when `path` or `url` uses `json` or `srs` as extension.
 File path of rule-set.
 
 ### Remote Fields
+
+#### path
+
+!!! note ""
+
+    Will not be automatically reloaded if file modified.
+
+Full path of rule-set.
+
+If set, remote rule-set will be stored to a file instead of cache file.
 
 #### url
 

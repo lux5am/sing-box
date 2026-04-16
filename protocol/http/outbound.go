@@ -48,11 +48,13 @@ func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextL
 	if err != nil {
 		return nil, err
 	}
-	return &Outbound{
+	outbound := &Outbound{
 		Adapter: outbound.NewAdapterWithDialerOptions(C.TypeHTTP, tag, []string{N.NetworkTCP, N.NetworkUDP}, options.DialerOptions),
 		logger:  logger,
 		client:  client,
-	}, nil
+	}
+	outbound.SetPort(options.ServerPort)
+	return outbound, nil
 }
 
 func (h *Outbound) InterfaceUpdated(ctx context.Context) {

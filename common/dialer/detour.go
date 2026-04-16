@@ -17,7 +17,7 @@ type DirectDialer interface {
 }
 
 type DetourDialer struct {
-	outboundManager         adapter.OutboundManager
+	providerManager         adapter.OutboundProviderManager
 	detour                  string
 	defaultOutbound         bool
 	disableEmptyDirectCheck bool
@@ -26,17 +26,17 @@ type DetourDialer struct {
 	initErr                 error
 }
 
-func NewDetour(outboundManager adapter.OutboundManager, detour string, disableEmptyDirectCheck bool) N.Dialer {
+func NewDetour(providerManager adapter.OutboundProviderManager, detour string, disableEmptyDirectCheck bool) N.Dialer {
 	return &DetourDialer{
-		outboundManager:         outboundManager,
+		providerManager:         providerManager,
 		detour:                  detour,
 		disableEmptyDirectCheck: disableEmptyDirectCheck,
 	}
 }
 
-func NewDefaultOutboundDetour(outboundManager adapter.OutboundManager) N.Dialer {
+func NewDefaultOutboundDetour(providerManager adapter.OutboundProviderManager) N.Dialer {
 	return &DetourDialer{
-		outboundManager: outboundManager,
+		providerManager: providerManager,
 		defaultOutbound: true,
 	}
 }
@@ -58,13 +58,13 @@ func (d *DetourDialer) init() {
 	var dialer adapter.Outbound
 	if d.detour != "" {
 		var loaded bool
-		dialer, loaded = d.outboundManager.Outbound(d.detour)
+		dialer, loaded = d.providerManager.OutboundWithProvider(d.detour)
 		if !loaded {
 			d.initErr = E.New("outbound detour not found: ", d.detour)
 			return
 		}
 	} else {
-		dialer = d.outboundManager.Default()
+		dialer = d.providerManager.Default()
 	}
 	if !d.defaultOutbound && !d.disableEmptyDirectCheck {
 		if directDialer, isDirect := dialer.(DirectDialer); isDirect {

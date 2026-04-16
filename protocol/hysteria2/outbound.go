@@ -139,11 +139,13 @@ func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextL
 	if err != nil {
 		return nil, err
 	}
-	return &Outbound{
+	outbound := &Outbound{
 		Adapter: outbound.NewAdapterWithDialerOptions(C.TypeHysteria2, tag, networkList, options.DialerOptions),
 		logger:  logger,
 		client:  client,
-	}, nil
+	}
+	outbound.SetPort(options.ServerPort)
+	return outbound, nil
 }
 
 func outboundTLSOptions(options option.Hysteria2OutboundOptions) (string, option.OutboundTLSOptions, error) {

@@ -18,6 +18,8 @@ import (
 type Router interface {
 	Lifecycle
 	ConnectionRouter
+	OutboundManager() OutboundManager
+	ProviderManager() OutboundProviderManager
 	PreMatch(metadata InboundContext, firstPacket []byte) PreMatchResult
 	HijackDNSPacket(ctx context.Context, payload []byte, writer N.PacketWriter, metadata InboundContext)
 	ConnectionRouterEx

@@ -58,6 +58,7 @@ func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextL
 		dialer:     outboundDialer,
 		serverAddr: options.ServerOptions.Build(),
 	}
+	outbound.SetPort(options.ServerPort)
 	if options.TLS != nil {
 		outbound.tlsConfig, err = tls.NewClient(ctx, logger, options.Server, common.PtrValueOrDefault(options.TLS))
 		if err != nil {

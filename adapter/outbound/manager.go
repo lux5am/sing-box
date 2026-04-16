@@ -24,6 +24,9 @@ type Manager struct {
 	outboundByTag   map[string]adapter.Outbound
 	defaultOutbound adapter.Outbound
 	sortedOutbounds []adapter.Outbound
+
+	provider              adapter.OutboundProviderManager
+	defaultOutboundDirect adapter.Outbound
 }
 
 func NewManager(registry adapter.OutboundRegistry, endpoint adapter.EndpointManager, defaultTag string) *Manager {
@@ -35,9 +38,10 @@ func NewManager(registry adapter.OutboundRegistry, endpoint adapter.EndpointMana
 	}
 }
 
-func (m *Manager) Initialize(defaultOutboundFallback func() (adapter.Outbound, error)) error {
+func (m *Manager) Initialize(defaultOutboundFallback func() (adapter.Outbound, error), provider adapter.OutboundProviderManager) error {
 	m.access.Lock()
 	defer m.access.Unlock()
+	m.provider = provider
 	if m.defaultTag != "" && m.defaultOutbound == nil {
 		defaultEndpoint, loaded := m.endpoint.Get(m.defaultTag)
 		if !loaded {
@@ -53,6 +57,7 @@ func (m *Manager) Initialize(defaultOutboundFallback func() (adapter.Outbound, e
 		m.outbounds = append(m.outbounds, directOutbound)
 		m.outboundByTag[directOutbound.Tag()] = directOutbound
 		m.defaultOutbound = directOutbound
+		m.defaultOutboundDirect = directOutbound
 	}
 	sortedOutbounds, err := sortOutbounds(slices.Concat(m.outbounds, common.Map(m.endpoint.Endpoints(), func(it adapter.Endpoint) adapter.Outbound { return it })))
 	if err != nil {
@@ -182,4 +187,22 @@ func (m *Manager) Create(ctx context.Context, router adapter.Router, logger log.
 		m.defaultOutbound = outbound
 	}
 	return nil
+}
+
+func (m *Manager) OutboundsWithProvider() []adapter.Outbound {
+	return m.provider.OutboundsWithProvider()
+}
+
+func (m *Manager) OutboundWithProvider(tag string) (adapter.Outbound, bool) {
+	return m.provider.OutboundWithProvider(tag)
+}
+
+func (m *Manager) DefaultDirect() adapter.Outbound {
+	m.access.RLock()
+	defer m.access.RUnlock()
+	return m.defaultOutboundDirect
+}
+
+func (m *Manager) CreateOutbound(ctx context.Context, router adapter.Router, logger log.ContextLogger, tag string, inboundType string, options any) (adapter.Outbound, error) {
+	return m.registry.CreateOutbound(ctx, router, logger, tag, inboundType, options)
 }

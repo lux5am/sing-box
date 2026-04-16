@@ -154,10 +154,16 @@ type OutboundGroup interface {
 	All() []string
 	Selected(network string) Outbound
 	AttachConnection(closer io.Closer) (detach func())
+	UpdateOutbounds(tag string) error
 }
 
 type URLTestGroup interface {
 	OutboundGroup
 	URLTest(ctx context.Context) (map[string]uint16, error)
+	RefreshProviderSelected(tag string)
 	PerformUpdateCheck()
+}
+
+type SelectorGroup interface {
+	OutboundGroup
 }

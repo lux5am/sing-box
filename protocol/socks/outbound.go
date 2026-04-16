@@ -59,6 +59,7 @@ func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextL
 		client:    client,
 		resolve:   version == socks.Version4,
 	}
+	outbound.SetPort(options.ServerPort)
 	uotOptions := common.PtrValueOrDefault(options.UDPOverTCP)
 	if uotOptions.Enabled {
 		outbound.uotClient = &uot.Client{

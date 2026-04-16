@@ -221,6 +221,7 @@ func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextL
 		logger:  logger,
 		client:  client,
 	}
+	outbound.SetPort(options.ServerPort)
 	if uotOptions.Enabled {
 		outbound.uotClient = &uot.Client{
 			Dialer:  (*naiveDialer)(outbound),

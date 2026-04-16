@@ -5,6 +5,8 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -23,6 +25,7 @@ import (
 	"github.com/sagernet/sing/common/logger"
 	"github.com/sagernet/sing/common/x/list"
 	"github.com/sagernet/sing/service"
+	"github.com/sagernet/sing/service/filemanager"
 	"github.com/sagernet/sing/service/pause"
 
 	"go4.org/netipx"
@@ -45,6 +48,7 @@ type RemoteRuleSet struct {
 	lastEtag       string
 	updateTicker   *time.Ticker
 	cacheFile      adapter.CacheFile
+	filePath       string
 	pauseManager   pause.Manager
 	callbacks      list.List[adapter.RuleSetUpdateCallback]
 	refs           atomic.Int32
@@ -85,7 +89,25 @@ func (s *RemoteRuleSet) StartContext(ctx context.Context, startContext *adapter.
 	}
 	startContext.Register(transport)
 	s.httpClient = &http.Client{Transport: transport}
-	if s.cacheFile != nil {
+	var loadedFromFile bool
+	if s.options.RemoteOptions.Path != "" {
+		filePath := filemanager.BasePath(ctx, s.options.RemoteOptions.Path)
+		filePath, _ = filepath.Abs(filePath)
+		s.filePath = filePath
+		file, err := os.Open(filePath)
+		if err == nil {
+			content, err := io.ReadAll(file)
+			if err == nil {
+				err = s.loadBytes(content)
+				if err == nil {
+					fs, _ := file.Stat()
+					s.lastUpdated = fs.ModTime()
+					loadedFromFile = true
+				}
+			}
+		}
+	}
+	if !loadedFromFile && s.cacheFile != nil {
 		if savedSet := s.cacheFile.LoadRuleSet(s.options.Tag); savedSet != nil {
 			err = s.loadBytes(savedSet.Content)
 			if err != nil {
@@ -241,7 +263,9 @@ func (s *RemoteRuleSet) fetch(ctx context.Context, isStart bool) error {
 	case http.StatusOK:
 	case http.StatusNotModified:
 		s.lastUpdated = time.Now()
-		if s.cacheFile != nil {
+		if s.filePath != "" {
+			os.Chtimes(s.filePath, s.lastUpdated, s.lastUpdated)
+		} else if s.cacheFile != nil {
 			savedRuleSet := s.cacheFile.LoadRuleSet(s.options.Tag)
 			if savedRuleSet != nil {
 				savedRuleSet.LastUpdated = s.lastUpdated
@@ -270,7 +294,12 @@ func (s *RemoteRuleSet) fetch(ctx context.Context, isStart bool) error {
 		s.lastEtag = eTagHeader
 	}
 	s.lastUpdated = time.Now()
-	if s.cacheFile != nil {
+	if s.filePath != "" {
+		err = os.WriteFile(s.filePath, content, 0o666)
+		if err != nil {
+			s.logger.Error("save rule-set file ", s.options.Tag, ": ", err)
+		}
+	} else if s.cacheFile != nil {
 		err = s.cacheFile.SaveRuleSet(s.options.Tag, &adapter.SavedBinary{
 			LastUpdated: s.lastUpdated,
 			Content:     content,

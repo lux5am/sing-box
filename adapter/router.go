@@ -22,6 +22,7 @@ type Router interface {
 	HijackDNSPacket(ctx context.Context, payload []byte, writer N.PacketWriter, metadata InboundContext)
 	ConnectionRouterEx
 	RuleSet(tag string) (RuleSet, bool)
+	RuleSets() []RuleSet
 	Rules() []Rule
 	NeedFindProcess() bool
 	NeedFindNeighbor() bool
@@ -121,6 +122,10 @@ type ConnectionRouterEx interface {
 
 type RuleSet interface {
 	Name() string
+	Type() string
+	Format() string
+	UpdatedTime() time.Time
+	Update(ctx context.Context) error
 	StartContext(ctx context.Context, startContext *HTTPStartContext) error
 	Metadata() RuleSetMetadata
 	ExtractIPSet() []*netipx.IPSet

@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"io"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -40,6 +41,7 @@ type RemoteRuleSet struct {
 	tag            string
 	url            string
 	urlHash        [32]byte
+	path           string
 	initialPath    string
 	options        option.RuleSet
 	updateInterval time.Duration
@@ -63,6 +65,11 @@ func NewRemoteRuleSet(ctx context.Context, logger logger.ContextLogger, tag stri
 	} else {
 		updateInterval = 24 * time.Hour
 	}
+	var path string
+	if options.RemoteOptions.Path != "" {
+		path = filemanager.BasePath(ctx, strings.ReplaceAll(options.RemoteOptions.Path, C.RuleSetTagPlaceholder, tag))
+		path, _ = filepath.Abs(path)
+	}
 	var initialPath string
 	if options.RemoteOptions.InitialPath != "" {
 		initialPath = filemanager.BasePath(ctx, strings.ReplaceAll(options.RemoteOptions.InitialPath, C.RuleSetTagPlaceholder, tag))
@@ -77,6 +84,7 @@ func NewRemoteRuleSet(ctx context.Context, logger logger.ContextLogger, tag stri
 		tag:            tag,
 		url:            url,
 		urlHash:        sha256.Sum256([]byte(url)),
+		path:           path,
 		initialPath:    initialPath,
 		options:        options,
 		updateInterval: updateInterval,
@@ -100,7 +108,25 @@ func (s *RemoteRuleSet) StartContext(ctx context.Context, startContext *adapter.
 	}
 	startContext.Register(transport)
 	s.httpClient = &http.Client{Transport: transport}
-	if s.cacheFile != nil {
+	var loadedFromFile bool
+	if s.path != "" {
+		setFile, err := filemanager.Open(s.ctx, s.path)
+		if err == nil {
+			defer setFile.Close()
+			content, err := io.ReadAll(setFile)
+			if err == nil {
+				err = s.loadBytes(content)
+				if err != nil {
+					s.logger.Warn(E.Cause(err, "load saved rule-set from ", s.path))
+				} else {
+					fs, _ := setFile.Stat()
+					s.lastUpdated = fs.ModTime()
+					loadedFromFile = true
+				}
+			}
+		}
+	}
+	if !loadedFromFile && s.cacheFile != nil {
 		savedSet := s.cacheFile.LoadRuleSet(s.tag)
 		if savedSet != nil {
 			if len(savedSet.URLHash) > 0 && !bytes.Equal(savedSet.URLHash, s.urlHash[:]) {
@@ -254,7 +280,9 @@ func (s *RemoteRuleSet) fetch(ctx context.Context, isStart bool) error {
 	case http.StatusOK:
 	case http.StatusNotModified:
 		s.lastUpdated = time.Now()
-		if s.cacheFile != nil {
+		if s.path != "" {
+			os.Chtimes(s.path, s.lastUpdated, s.lastUpdated)
+		} else if s.cacheFile != nil {
 			savedRuleSet := s.cacheFile.LoadRuleSet(s.tag)
 			if savedRuleSet != nil {
 				savedRuleSet.LastUpdated = s.lastUpdated
@@ -284,7 +312,12 @@ func (s *RemoteRuleSet) fetch(ctx context.Context, isStart bool) error {
 		s.lastEtag = eTagHeader
 	}
 	s.lastUpdated = time.Now()
-	if s.cacheFile != nil {
+	if s.path != "" {
+		err = os.WriteFile(s.path, content, 0o666)
+		if err != nil {
+			s.logger.Error("save rule-set file ", s.options.Tag, ": ", err)
+		}
+	} else if s.cacheFile != nil {
 		err = s.cacheFile.SaveRuleSet(s.tag, &adapter.SavedBinary{
 			LastUpdated: s.lastUpdated,
 			Content:     content,

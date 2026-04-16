@@ -132,6 +132,12 @@ type ruleSetContentProvider interface {
 type ruleSetContent struct {
 	rules    []adapter.HeadlessRule
 	metadata adapter.RuleSetMetadata
+
+	ruleCount uint64
+}
+
+func (c *ruleSetContent) RuleCount() uint64 {
+	return c.ruleCount
 }
 
 func (c *ruleSetContent) mergeableRule() *DefaultHeadlessRule {

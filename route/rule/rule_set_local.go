@@ -2,10 +2,12 @@ package rule
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/sagernet/fswatch"
 	"github.com/sagernet/sing-box/adapter"
@@ -34,6 +36,11 @@ type LocalRuleSet struct {
 	access     sync.Mutex
 	callbacks  list.List[adapter.RuleSetUpdateCallback]
 	refs       atomic.Int32
+
+	filePath    string
+	options     option.RuleSet
+	ruleCount   uint64
+	lastUpdated time.Time
 }
 
 func NewLocalRuleSet(ctx context.Context, logger logger.Logger, tag string, options option.RuleSet) (*LocalRuleSet, error) {
@@ -42,6 +49,7 @@ func NewLocalRuleSet(ctx context.Context, logger logger.Logger, tag string, opti
 		logger:     logger,
 		tag:        tag,
 		fileFormat: options.Format,
+		options:    options,
 	}
 	if options.Type == C.RuleSetTypeInline {
 		if len(options.InlineOptions.Rules) == 0 {
@@ -54,6 +62,7 @@ func NewLocalRuleSet(ctx context.Context, logger logger.Logger, tag string, opti
 	} else {
 		filePath := filemanager.BasePath(ctx, strings.ReplaceAll(options.LocalOptions.Path, C.RuleSetTagPlaceholder, tag))
 		filePath, _ = filepath.Abs(filePath)
+		ruleSet.filePath = filePath
 		err := ruleSet.reloadFile(filePath)
 		if err != nil {
 			return nil, err
@@ -83,6 +92,30 @@ func (s *LocalRuleSet) String() string {
 	return s.content.Load().String()
 }
 
+func (s *LocalRuleSet) Format() string {
+	return s.options.Format
+}
+
+func (s *LocalRuleSet) Type() string {
+	return s.options.Type
+}
+
+func (s *LocalRuleSet) RuleCount() uint64 {
+	return s.ruleCount
+}
+
+func (s *LocalRuleSet) UpdatedTime() time.Time {
+	return s.lastUpdated
+}
+
+func (s *LocalRuleSet) Update(ctx context.Context) error {
+	err := s.reloadFile(s.filePath)
+	if err != nil {
+		s.logger.Error(E.Cause(err, "reload rule-set ", s.tag))
+	}
+	return nil
+}
+
 func (s *LocalRuleSet) StartContext(ctx context.Context, startContext *adapter.HTTPStartContext) error {
 	if s.watcher != nil {
 		err := s.watcher.Start()
@@ -94,6 +127,10 @@ func (s *LocalRuleSet) StartContext(ctx context.Context, startContext *adapter.H
 }
 
 func (s *LocalRuleSet) reloadFile(path string) error {
+	fileInfo, err := os.Stat(path)
+	if err == nil {
+		s.lastUpdated = fileInfo.ModTime()
+	}
 	var ruleSet option.PlainRuleSetCompat
 	switch s.fileFormat {
 	case C.RuleSetFormatSource, "":
@@ -118,7 +155,7 @@ func (s *LocalRuleSet) reloadFile(path string) error {
 	default:
 		return E.New("unknown rule-set format: ", s.fileFormat)
 	}
-	ruleSet, err := mmapRuleSet(s.ctx, s.logger, s.tag, ruleSet)
+	ruleSet, err = mmapRuleSet(s.ctx, s.logger, s.tag, ruleSet)
 	if err != nil {
 		return err
 	}
@@ -132,19 +169,22 @@ func (s *LocalRuleSet) reloadFile(path string) error {
 func (s *LocalRuleSet) reloadRules(headlessRules []option.HeadlessRule) error {
 	rules := make([]adapter.HeadlessRule, len(headlessRules))
 	var err error
+	var ruleCount uint64
 	for i, ruleOptions := range headlessRules {
 		rules[i], err = NewHeadlessRule(s.ctx, ruleOptions)
 		if err != nil {
 			return E.Cause(err, "parse rule_set.rules.[", i, "]")
 		}
+		ruleCount += rules[i].RuleCount()
 	}
 	metadata := buildRuleSetMetadata(headlessRules)
 	err = validateRuleSetMetadataUpdate(s.ctx, s.tag, metadata)
 	if err != nil {
 		return err
 	}
-	s.content.Store(&ruleSetContent{rules: rules, metadata: metadata})
+	s.content.Store(&ruleSetContent{rules: rules, metadata: metadata, ruleCount: ruleCount})
 	s.access.Lock()
+	s.ruleCount = ruleCount
 	callbacks := s.callbacks.Array()
 	s.access.Unlock()
 	for _, callback := range callbacks {

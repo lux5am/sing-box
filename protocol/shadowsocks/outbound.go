@@ -57,6 +57,7 @@ func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextL
 		method:     method,
 		serverAddr: options.ServerOptions.Build(),
 	}
+	outbound.SetPort(options.ServerPort)
 	if options.Plugin != "" {
 		outbound.plugin, err = sip003.CreatePlugin(ctx, options.Plugin, options.PluginOptions, router, outbound.dialer, outbound.serverAddr)
 		if err != nil {

@@ -78,7 +78,7 @@ func (m *Manager) newTrackerMetadata(metadata adapter.InboundContext, matchedRul
 		next = m.outbound.Default().Tag()
 	}
 	for {
-		detour, loaded := m.outbound.Outbound(next)
+		detour, loaded := m.outbound.OutboundWithProvider(next)
 		if !loaded {
 			break
 		}

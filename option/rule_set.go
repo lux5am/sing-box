@@ -99,7 +99,7 @@ func (r *RuleSet) UnmarshalJSON(bytes []byte) error {
 			return E.New("unknown rule-set format: " + r.Format)
 		}
 	} else {
-		r.Format = ""
+		r.Format = C.RuleSetFormatSource
 	}
 	if len(r.Tag) > 1 {
 		switch r.Type {

@@ -72,6 +72,7 @@ func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextL
 	if outbound.serverAddr.Port == 0 {
 		outbound.serverAddr.Port = 22
 	}
+	outbound.SetPort(outbound.serverAddr.Port)
 	if outbound.user == "" {
 		outbound.user = "root"
 	}

@@ -13,6 +13,7 @@ require (
 	github.com/cretz/bine v0.2.0
 	github.com/database64128/tfo-go/v2 v2.3.2
 	github.com/dblohm7/wingoes v0.0.0-20240119213807-a09d6be7affa
+	github.com/dlclark/regexp2 v1.11.5
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/go-chi/render v1.0.3
 	github.com/godbus/dbus/v5 v5.2.2
@@ -67,6 +68,7 @@ require (
 	github.com/tailscale/go-winio v0.0.0-20231025203758-c4f33415bf55
 	github.com/vishvananda/netns v0.0.5
 	go.uber.org/zap v1.27.1
+	go.yaml.in/yaml/v3 v3.0.5
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba
 	golang.org/x/crypto v0.54.0
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f
@@ -194,7 +196,6 @@ require (
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
 	golang.zx2c4.com/wireguard/windows v0.5.3 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251202230838-ff82c1b0f217 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
 	zombiezen.com/go/capnproto2 v2.18.2+incompatible // indirect
 )

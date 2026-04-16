@@ -38,7 +38,7 @@ func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextL
 	if err != nil {
 		return nil, err
 	}
-	return &Outbound{
+	outbound := &Outbound{
 		Adapter: outbound.NewAdapterWithDialerOptions(C.TypeHTTP, tag, []string{N.NetworkTCP}, options.DialerOptions),
 		logger:  logger,
 		client: sHTTP.NewClient(sHTTP.Options{
@@ -49,7 +49,9 @@ func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextL
 			Path:     options.Path,
 			Headers:  options.Headers.Build(),
 		}),
-	}, nil
+	}
+	outbound.SetPort(options.ServerPort)
+	return outbound, nil
 }
 
 func (h *Outbound) DialContext(ctx context.Context, network string, destination M.Socksaddr) (net.Conn, error) {

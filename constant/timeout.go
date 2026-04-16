@@ -11,6 +11,7 @@ const (
 	DNSTimeout                = 10 * time.Second
 	UDPTimeout                = 5 * time.Minute
 	ICMPTimeout               = 10 * time.Second
+	DefaultDownloadInterval   = 1 * time.Hour
 	DefaultURLTestInterval    = 3 * time.Minute
 	DefaultURLTestIdleTimeout = 30 * time.Minute
 	StartTimeout              = 10 * time.Second

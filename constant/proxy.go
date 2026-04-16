@@ -123,3 +123,8 @@ func ProxyDisplayName(proxyType string) string {
 		return "Unknown"
 	}
 }
+
+const (
+	ProviderTypeLocal  = "local"
+	ProviderTypeRemote = "remote"
+)

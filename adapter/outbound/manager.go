@@ -17,12 +17,14 @@ var _ adapter.OutboundManager = (*Manager)(nil)
 type Manager struct {
 	registry                adapter.OutboundRegistry
 	endpoint                adapter.EndpointManager
+	provider                adapter.OutboundProviderManager
 	defaultTag              string
 	access                  sync.RWMutex
 	outbounds               []adapter.Outbound
 	outboundByTag           map[string]adapter.Outbound
 	defaultOutbound         adapter.Outbound
 	defaultOutboundFallback func() (adapter.Outbound, error)
+	defaultOutboundDirect   adapter.Outbound
 }
 
 func NewManager(registry adapter.OutboundRegistry, endpoint adapter.EndpointManager, defaultTag string) *Manager {
@@ -34,8 +36,9 @@ func NewManager(registry adapter.OutboundRegistry, endpoint adapter.EndpointMana
 	}
 }
 
-func (m *Manager) Initialize(defaultOutboundFallback func() (adapter.Outbound, error)) {
+func (m *Manager) Initialize(defaultOutboundFallback func() (adapter.Outbound, error), provider adapter.OutboundProviderManager) {
 	m.defaultOutboundFallback = defaultOutboundFallback
+	m.provider = provider
 }
 
 func (m *Manager) Start(stage adapter.StartStage, scope *adapter.Scope) error {
@@ -58,6 +61,7 @@ func (m *Manager) Start(stage adapter.StartStage, scope *adapter.Scope) error {
 			m.outbounds = append(m.outbounds, directOutbound)
 			m.outboundByTag[directOutbound.Tag()] = directOutbound
 			m.defaultOutbound = directOutbound
+			m.defaultOutboundDirect = directOutbound
 		}
 	}
 	outbounds := m.outbounds
@@ -158,6 +162,32 @@ func (m *Manager) Outbound(tag string) (adapter.Outbound, bool) {
 		return outbound, true
 	}
 	return m.endpoint.Get(tag)
+}
+
+func (m *Manager) OutboundsWithProvider() []adapter.Outbound {
+	return m.provider.OutboundsWithProvider()
+}
+
+func (m *Manager) OutboundWithProvider(tag string) (adapter.Outbound, bool) {
+	return m.provider.OutboundWithProvider(tag)
+}
+
+func (m *Manager) DefaultDirect() adapter.Outbound {
+	m.access.Lock()
+	defer m.access.Unlock()
+	if m.defaultOutboundDirect == nil {
+		directOutbound, err := m.defaultOutboundFallback()
+		if err == nil {
+			m.outbounds = append(m.outbounds, directOutbound)
+			m.outboundByTag[directOutbound.Tag()] = directOutbound
+			m.defaultOutboundDirect = directOutbound
+		}
+	}
+	return m.defaultOutboundDirect
+}
+
+func (m *Manager) CreateOutbound(ctx context.Context, router adapter.Router, logger log.ContextLogger, tag string, inboundType string, options any) (adapter.Outbound, error) {
+	return m.registry.CreateOutbound(ctx, router, logger, tag, inboundType, options)
 }
 
 func (m *Manager) Default() adapter.Outbound {

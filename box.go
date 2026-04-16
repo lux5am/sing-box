@@ -10,6 +10,7 @@ import (
 	"github.com/sagernet/sing-box/adapter/endpoint"
 	"github.com/sagernet/sing-box/adapter/inbound"
 	"github.com/sagernet/sing-box/adapter/outbound"
+	"github.com/sagernet/sing-box/adapter/provider"
 	boxService "github.com/sagernet/sing-box/adapter/service"
 	"github.com/sagernet/sing-box/common/certificate"
 	"github.com/sagernet/sing-box/common/dialer"
@@ -48,6 +49,7 @@ type Box struct {
 	endpoint            *endpoint.Manager
 	inbound             *inbound.Manager
 	outbound            *outbound.Manager
+	provider            *provider.Manager
 	service             *boxService.Manager
 	certificateProvider *boxCertificate.Manager
 	dnsTransport        *dns.TransportManager
@@ -208,12 +210,14 @@ func New(options Options) (*Box, error) {
 	endpointManager := endpoint.NewManager(endpointRegistry)
 	inboundManager := inbound.NewManager(inboundRegistry, endpointManager)
 	outboundManager := outbound.NewManager(outboundRegistry, endpointManager, routeOptions.Final)
+	providerManager := provider.NewManager(logFactory, outboundManager)
 	dnsTransportManager := dns.NewTransportManager(dnsTransportRegistry, outboundManager, dnsOptions.Final)
 	serviceManager := boxService.NewManager(serviceRegistry)
 	certificateProviderManager := boxCertificate.NewManager(certificateProviderRegistry)
 	service.MustRegister[adapter.EndpointManager](ctx, endpointManager)
 	service.MustRegister[adapter.InboundManager](ctx, inboundManager)
 	service.MustRegister[adapter.OutboundManager](ctx, outboundManager)
+	service.MustRegister[adapter.OutboundProviderManager](ctx, providerManager)
 	service.MustRegister[adapter.DNSTransportManager](ctx, dnsTransportManager)
 	service.MustRegister[adapter.ServiceManager](ctx, serviceManager)
 	service.MustRegister[adapter.CertificateProviderManager](ctx, certificateProviderManager)
@@ -346,6 +350,23 @@ func New(options Options) (*Box, error) {
 			return nil, E.Cause(err, "initialize service[", i, "]")
 		}
 	}
+	for i, providerOptions := range options.OutboundProviders {
+		var tag string
+		if providerOptions.Tag != "" {
+			tag = providerOptions.Tag
+		} else {
+			tag = F.ToString(i)
+		}
+		err = providerManager.Create(
+			ctx,
+			router,
+			tag,
+			providerOptions,
+		)
+		if err != nil {
+			return nil, E.Cause(err, "initialize outbound provider[", i, "]")
+		}
+	}
 	for i, outboundOptions := range options.Outbounds {
 		var tag string
 		if outboundOptions.Tag != "" {
@@ -398,7 +419,7 @@ func New(options Options) (*Box, error) {
 			"direct",
 			option.DirectOutboundOptions{},
 		)
-	})
+	}, providerManager)
 	dnsTransportManager.Initialize(func() (adapter.DNSTransport, error) {
 		return dnsTransportRegistry.CreateDNSTransport(
 			ctx,
@@ -470,6 +491,7 @@ func New(options Options) (*Box, error) {
 		endpoint:            endpointManager,
 		inbound:             inboundManager,
 		outbound:            outboundManager,
+		provider:            providerManager,
 		dnsTransport:        dnsTransportManager,
 		service:             serviceManager,
 		certificateProvider: certificateProviderManager,
@@ -561,6 +583,7 @@ func (s *Box) preStart() error {
 		boxComponent{"dns-router", s.dnsRouter},
 		boxComponent{"connection", s.connection},
 		boxComponent{"router", s.router},
+		boxComponent{"provider", s.provider},
 		boxComponent{"outbound", s.outbound},
 		boxComponent{"endpoint", s.endpoint},
 		boxComponent{"certificate-provider", s.certificateProvider},
@@ -571,6 +594,7 @@ func (s *Box) preStart() error {
 		return err
 	}
 	err = s.startComponents(adapter.StartStateStart,
+		boxComponent{"provider", s.provider},
 		boxComponent{"outbound", s.outbound},
 		boxComponent{"dns-transport", s.dnsTransport},
 		boxComponent{"network", s.network},
@@ -614,6 +638,7 @@ func (s *Box) start() error {
 	}
 	err = s.startComponents(adapter.StartStatePostStart,
 		boxComponent{"outbound", s.outbound},
+		boxComponent{"provider", s.provider},
 		boxComponent{"network", s.network},
 		boxComponent{"dns-transport", s.dnsTransport},
 		boxComponent{"dns-router", s.dnsRouter},

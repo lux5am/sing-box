@@ -207,6 +207,38 @@ func NewDefaultHeadlessRule(ctx context.Context, options option.DefaultHeadlessR
 		rule.destinationAddressItems = append(rule.destinationAddressItems, item)
 		rule.allItems = append(rule.allItems, item)
 	}
+	ruleCount := len(options.QueryType) +
+		len(options.Network) +
+		len(options.Domain) +
+		len(options.DomainSuffix) +
+		len(options.DomainKeyword) +
+		len(options.DomainRegex) +
+		len(options.SourceIPCIDR) +
+		len(options.IPCIDR) +
+		len(options.SourcePort) +
+		len(options.SourcePortRange) +
+		len(options.Port) +
+		len(options.PortRange) +
+		len(options.ProcessName) +
+		len(options.ProcessPath) +
+		len(options.ProcessPathRegex) +
+		len(options.PackageName) +
+		len(options.NetworkType) +
+		// len(options.NetworkIsExpensive) +
+		// len(options.NetworkIsConstrained) +
+		len(options.WIFISSID) +
+		len(options.WIFIBSSID) +
+		// len(options.NetworkInterfaceAddress) +
+		len(options.DefaultInterfaceAddress) +
+		len(options.AdGuardDomain)
+	if options.NetworkInterfaceAddress != nil {
+		ruleCount += options.NetworkInterfaceAddress.Size()
+	}
+	if ruleCount > 0 {
+		rule.ruleCount = uint64(ruleCount)
+	} else {
+		rule.ruleCount = 1
+	}
 	return rule, nil
 }
 
@@ -241,6 +273,12 @@ func NewLogicalHeadlessRule(ctx context.Context, options option.LogicalHeadlessR
 			return nil, E.Cause(err, "sub rule[", i, "]")
 		}
 		r.rules[i] = rule
+		ruleCount := rule.RuleCount()
+		if ruleCount > 0 {
+			r.ruleCount += ruleCount
+		} else {
+			r.ruleCount += 1
+		}
 	}
 	return r, nil
 }

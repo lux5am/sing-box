@@ -52,6 +52,8 @@ type RemoteRuleSet struct {
 	pauseManager   pause.Manager
 	callbacks      list.List[adapter.RuleSetUpdateCallback]
 	refs           atomic.Int32
+
+	ruleCount uint64
 }
 
 func NewRemoteRuleSet(ctx context.Context, logger logger.ContextLogger, options option.RuleSet) (*RemoteRuleSet, error) {
@@ -79,6 +81,27 @@ func (s *RemoteRuleSet) Name() string {
 
 func (s *RemoteRuleSet) String() string {
 	return strings.Join(F.MapToString(s.rules), " ")
+}
+
+func (s *RemoteRuleSet) Format() string {
+	return s.options.Format
+}
+
+func (s *RemoteRuleSet) Type() string {
+	return s.options.Type
+}
+
+func (s *RemoteRuleSet) RuleCount() uint64 {
+	return s.ruleCount
+}
+
+func (s *RemoteRuleSet) UpdatedTime() time.Time {
+	return s.lastUpdated
+}
+
+func (s *RemoteRuleSet) Update(ctx context.Context) error {
+	s.updateOnce()
+	return nil
 }
 
 func (s *RemoteRuleSet) StartContext(ctx context.Context, startContext *adapter.HTTPStartContext) error {
@@ -196,11 +219,13 @@ func (s *RemoteRuleSet) loadBytes(content []byte) error {
 		return err
 	}
 	rules := make([]adapter.HeadlessRule, len(plainRuleSet.Rules))
+	var ruleCount uint64
 	for i, ruleOptions := range plainRuleSet.Rules {
 		rules[i], err = NewHeadlessRule(s.ctx, ruleOptions)
 		if err != nil {
 			return E.Cause(err, "parse rule_set.rules.[", i, "]")
 		}
+		ruleCount += rules[i].RuleCount()
 	}
 	metadata := buildRuleSetMetadata(plainRuleSet.Rules)
 	err = validateRuleSetMetadataUpdate(s.ctx, s.options.Tag, metadata)
@@ -210,6 +235,7 @@ func (s *RemoteRuleSet) loadBytes(content []byte) error {
 	s.access.Lock()
 	s.metadata = metadata
 	s.rules = rules
+	s.ruleCount = ruleCount
 	callbacks := s.callbacks.Array()
 	s.access.Unlock()
 	for _, callback := range callbacks {

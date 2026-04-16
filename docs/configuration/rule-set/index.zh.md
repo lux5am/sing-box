@@ -50,6 +50,7 @@
       "tag": "", // 或 []
       "format": "source", // or binary
       "url": "",
+      "path": "",
       "initial_path": "",
       "http_client": "", // 或 {}
       "update_interval": "",

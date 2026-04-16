@@ -29,6 +29,7 @@ type Router struct {
 	logger            log.ContextLogger
 	inbound           adapter.InboundManager
 	outbound          adapter.OutboundManager
+	provider          adapter.OutboundProviderManager
 	dns               adapter.DNSRouter
 	dnsTransport      adapter.DNSTransportManager
 	connection        adapter.ConnectionManager
@@ -55,6 +56,7 @@ func NewRouter(ctx context.Context, logFactory log.Factory, options option.Route
 		logger:            logFactory.NewLogger("router"),
 		inbound:           service.FromContext[adapter.InboundManager](ctx),
 		outbound:          service.FromContext[adapter.OutboundManager](ctx),
+		provider:          service.FromContext[adapter.OutboundProviderManager](ctx),
 		dns:               service.FromContext[adapter.DNSRouter](ctx),
 		dnsTransport:      service.FromContext[adapter.DNSTransportManager](ctx),
 		connection:        service.FromContext[adapter.ConnectionManager](ctx),
@@ -254,6 +256,14 @@ func (r *Router) Close() error {
 	return err
 }
 
+func (r *Router) OutboundManager() adapter.OutboundManager {
+	return r.outbound
+}
+
+func (r *Router) ProviderManager() adapter.OutboundProviderManager {
+	return r.provider
+}
+
 func (r *Router) RuleSet(tag string) (adapter.RuleSet, bool) {
 	ruleSet, loaded := r.ruleSetMap[tag]
 	return ruleSet, loaded
@@ -287,4 +297,5 @@ func (r *Router) ResetNetwork() {
 	r.network.ResetNetwork()
 	r.httpClientManager.ResetNetwork()
 	r.dns.ResetNetwork()
+	runtime.GC()
 }

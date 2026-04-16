@@ -210,13 +210,15 @@ func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextL
 	} else {
 		networks = []string{N.NetworkTCP}
 	}
-	return &Outbound{
+	outbound := &Outbound{
 		Adapter:   outbound.NewAdapterWithDialerOptions(C.TypeNaive, tag, networks, options.DialerOptions),
 		ctx:       ctx,
 		logger:    logger,
 		client:    client,
 		uotClient: uotClient,
-	}, nil
+	}
+	outbound.SetPort(options.ServerPort)
+	return outbound, nil
 }
 
 func (h *Outbound) Start(stage adapter.StartStage) error {

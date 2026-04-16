@@ -45,17 +45,17 @@ func NewWithOptions(options Options) (N.Dialer, error) {
 	)
 	hasDetour := dialOptions.Detour != "" || options.DefaultOutbound
 	if dialOptions.Detour != "" {
-		outboundManager := service.FromContext[adapter.OutboundManager](options.Context)
-		if outboundManager == nil {
-			return nil, E.New("missing outbound manager")
+		providerManager := service.FromContext[adapter.OutboundProviderManager](options.Context)
+		if providerManager == nil {
+			return nil, E.New("missing provider manager")
 		}
-		dialer = NewDetour(outboundManager, dialOptions.Detour, options.DisableEmptyDirectCheck)
+		dialer = NewDetour(providerManager, dialOptions.Detour, options.DisableEmptyDirectCheck)
 	} else if options.DefaultOutbound {
-		outboundManager := service.FromContext[adapter.OutboundManager](options.Context)
-		if outboundManager == nil {
-			return nil, E.New("missing outbound manager")
+		providerManager := service.FromContext[adapter.OutboundProviderManager](options.Context)
+		if providerManager == nil {
+			return nil, E.New("missing provider manager")
 		}
-		dialer = NewDefaultOutboundDetour(outboundManager)
+		dialer = NewDefaultOutboundDetour(providerManager)
 	} else {
 		dialer, err = NewDefault(options.Context, dialOptions)
 		if err != nil {

@@ -222,11 +222,12 @@ func computeTimeToLive(response *dns.Msg) uint32 {
 	}
 	for _, recordList := range [][]dns.RR{response.Answer, response.Ns, response.Extra} {
 		for _, record := range recordList {
-			if record.Header().Rrtype == dns.TypeOPT {
+			rh := record.Header()
+			if rh.Rrtype == dns.TypeOPT {
 				continue
 			}
-			if timeToLive == 0 || record.Header().Ttl > 0 && record.Header().Ttl < timeToLive {
-				timeToLive = record.Header().Ttl
+			if timeToLive == 0 || rh.Ttl > 0 && rh.Ttl < timeToLive {
+				timeToLive = rh.Ttl
 			}
 		}
 	}
@@ -236,10 +237,45 @@ func computeTimeToLive(response *dns.Msg) uint32 {
 func normalizeTTL(response *dns.Msg, timeToLive uint32) {
 	for _, recordList := range [][]dns.RR{response.Answer, response.Ns, response.Extra} {
 		for _, record := range recordList {
-			if record.Header().Rrtype == dns.TypeOPT {
+			rh := record.Header()
+			if rh.Rrtype == dns.TypeOPT {
 				continue
 			}
-			record.Header().Ttl = timeToLive
+			rh.Ttl = timeToLive
+		}
+	}
+}
+
+func updateTTL(response *dns.Msg, timeToLive uint32) {
+	delta := computeTimeToLive(response) - timeToLive
+	for _, recordList := range [][]dns.RR{response.Answer, response.Ns, response.Extra} {
+		for _, record := range recordList {
+			rh := record.Header()
+			if rh.Rrtype == dns.TypeOPT {
+				continue
+			}
+			if rh.Ttl < delta {
+				rh.Ttl = 0
+			} else {
+				rh.Ttl = rh.Ttl - delta
+			}
+		}
+	}
+}
+
+func applyMinMaxTTL(response *dns.Msg, minTTL uint32, maxTTL uint32) {
+	for _, recordList := range [][]dns.RR{response.Answer, response.Ns, response.Extra} {
+		for _, record := range recordList {
+			rh := record.Header()
+			if rh.Rrtype == dns.TypeOPT {
+				continue
+			}
+			if minTTL > 0 && rh.Ttl < minTTL {
+				rh.Ttl = minTTL
+			}
+			if maxTTL > 0 && rh.Ttl > maxTTL {
+				rh.Ttl = maxTTL
+			}
 		}
 	}
 }
@@ -348,9 +384,9 @@ func (c *Client) Exchange(ctx context.Context, transport adapter.DNSTransport, m
 			return response, ErrResponseRejected
 		}
 	}
-	timeToLive := c.applyResponseOptions(question, response, options)
+	timeToLive, resp, cacheTTL := c.applyResponseOptions(question, response, options)
 	if !disableCache {
-		c.storeCache(transport, question, response, timeToLive)
+		c.storeCache(transport, question, resp, cacheTTL)
 	}
 	response.Id = messageId
 	requestEDNSOpt := message.IsEdns0()
@@ -536,7 +572,7 @@ func (c *Client) loadResponse(question dns.Question, transport adapter.DNSTransp
 	}
 	nowTTL := max(int(expireAt.Sub(timeNow).Seconds()), 0)
 	resp := response.Copy()
-	normalizeTTL(resp, uint32(nowTTL))
+	updateTTL(resp, uint32(nowTTL))
 	return resp, nowTTL, false
 }
 
@@ -563,11 +599,11 @@ func (c *Client) loadPersistentResponse(question dns.Question, transport adapter
 		return nil, 0, false
 	}
 	nowTTL := max(int(expireAt.Sub(timeNow).Seconds()), 0)
-	normalizeTTL(response, uint32(nowTTL))
+	updateTTL(response, uint32(nowTTL))
 	return response, nowTTL, false
 }
 
-func (c *Client) applyResponseOptions(question dns.Question, response *dns.Msg, options adapter.DNSQueryOptions) uint32 {
+func (c *Client) applyResponseOptions(question dns.Question, response *dns.Msg, options adapter.DNSQueryOptions) (uint32, *dns.Msg, uint32) {
 	if question.Qtype == dns.TypeHTTPS && (options.Strategy == C.DomainStrategyIPv4Only || options.Strategy == C.DomainStrategyIPv6Only) {
 		for _, rr := range response.Answer {
 			https, isHTTPS := rr.(*dns.HTTPS)
@@ -587,16 +623,13 @@ func (c *Client) applyResponseOptions(question dns.Question, response *dns.Msg, 
 	timeToLive := computeTimeToLive(response)
 	if options.RewriteTTL != nil {
 		timeToLive = *options.RewriteTTL
-	} else {
-		if c.cacheMinTTL > 0 && timeToLive < c.cacheMinTTL {
-			timeToLive = c.cacheMinTTL
-		}
-		if c.cacheMaxTTL > 0 && timeToLive > c.cacheMaxTTL {
-			timeToLive = c.cacheMaxTTL
-		}
+		normalizeTTL(response, timeToLive)
+	} else if c.cacheMinTTL > 0 || c.cacheMaxTTL > 0 {
+		response = response.Copy()
+		applyMinMaxTTL(response, c.cacheMinTTL, c.cacheMaxTTL)
+		return timeToLive, response, computeTimeToLive(response)
 	}
-	normalizeTTL(response, timeToLive)
-	return timeToLive
+	return timeToLive, response, timeToLive
 }
 
 func (c *Client) backgroundRefreshDNS(transport adapter.DNSTransport, question dns.Question, message *dns.Msg, options adapter.DNSQueryOptions, responseChecker func(response *dns.Msg) bool) {
@@ -634,7 +667,7 @@ func (c *Client) backgroundRefreshDNS(transport adapter.DNSTransport, question d
 		} else if response.Rcode != dns.RcodeSuccess && response.Rcode != dns.RcodeNameError {
 			return
 		}
-		timeToLive := c.applyResponseOptions(question, response, options)
+		_, response, timeToLive := c.applyResponseOptions(question, response, options)
 		c.storeCache(transport, question, response, timeToLive)
 		logRefreshedResponse(c.logger, ctx, response, timeToLive)
 	}()

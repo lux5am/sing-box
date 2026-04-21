@@ -45,26 +45,34 @@ func (m *Manager) Start(stage adapter.StartStage) error {
 	switch stage {
 	case adapter.StartStateInitialize:
 		for i, p := range m.outboundProviders {
-			var tag string
-			if p.Tag() == "" {
+			tag := p.Tag()
+			if tag == "" {
 				tag = F.ToString(i)
-			} else {
-				tag = p.Tag()
 			}
-			monitor.Start("initialize outbound provider/", p.Type(), "[", tag, "]")
+			name := "provider/" + p.Type() + "[" + tag + "]"
+			done := adapter.LogElapsed(m.logger, stage, " ", name)
+			monitor.Start("initialize outbound ", name)
 			err := p.Start()
 			monitor.Finish()
+			done()
 			if err != nil {
-				return E.Cause(err, "initialize outbound provider/", p.Type(), "[", tag, "]")
+				return E.Cause(err, "initialize outbound ", name)
 			}
 		}
 	case adapter.StartStateStart:
 		return m.startOutboundProviders()
 	case adapter.StartStatePostStart:
-		for _, p := range m.outboundProviders {
+		for i, p := range m.outboundProviders {
+			tag := p.Tag()
+			if tag == "" {
+				tag = F.ToString(i)
+			}
+			name := "provider/" + p.Type() + "[" + tag + "]"
+			done := adapter.LogElapsed(m.logger, stage, " ", name)
 			err := p.PostStart()
+			done()
 			if err != nil {
-				return E.Cause(err, "post-start outbound provider/", p.Tag())
+				return E.Cause(err, "post-start outbound ", name)
 			}
 		}
 		m.started = true
@@ -76,22 +84,18 @@ func (m *Manager) startOutboundProviders() error {
 	monitor := taskmonitor.New(m.logger, C.StartTimeout)
 	outboundTag := make(map[string]int)
 	for _, out := range m.outbound.Outbounds() {
-		tag := out.Tag()
-		outboundTag[tag] = 0
+		outboundTag[out.Tag()] = 0
 	}
 	for i, p := range m.outboundProviders {
-		var pTag string
-		if p.Tag() == "" {
+		pTag := p.Tag()
+		if pTag == "" {
 			pTag = F.ToString(i)
-		} else {
-			pTag = p.Tag()
 		}
 		for j, out := range p.Outbounds() {
-			var tag string
 			if out.Tag() == "" {
 				out.SetTag(fmt.Sprint("[", pTag, "]", F.ToString(j)))
 			}
-			tag = out.Tag()
+			tag := out.Tag()
 			if _, exists := outboundTag[tag]; exists {
 				count := outboundTag[tag] + 1
 				tag = fmt.Sprint(tag, "[", count, "]")
@@ -102,11 +106,14 @@ func (m *Manager) startOutboundProviders() error {
 			if starter, isStarter := out.(interface {
 				Start() error
 			}); isStarter {
-				monitor.Start("initialize outbound provider[", pTag, "]", " outbound/", out.Type(), "[", tag, "]")
+				name := "provider[" + pTag + "]" + " outbound/" + out.Type() + "[" + tag + "]"
+				done := adapter.LogElapsed(m.logger, "start ", name)
+				monitor.Start("initialize outbound ", name)
 				err := starter.Start()
 				monitor.Finish()
+				done()
 				if err != nil {
-					return E.Cause(err, "initialize outbound provider[", pTag, "]", " outbound/", out.Type(), "[", tag, "]")
+					return E.Cause(err, "initialize outbound ", name)
 				}
 			}
 		}
@@ -120,17 +127,23 @@ func (m *Manager) Close() error {
 	var errors error
 	for i, p := range m.outboundProviders {
 		for j, out := range p.Outbounds() {
-			monitor.Start("closing provider/", p.Type(), "[", i, "]", " outbound/", out.Type(), "[", j, "]")
+			name := "provider/" + p.Type() + "[" + F.ToString(i) + "]" + " outbound/" + out.Type() + "[" + F.ToString(j) + "]"
+			done := adapter.LogElapsed(m.logger, "close ", name)
+			monitor.Start("closing ", name)
 			errors = E.Append(errors, common.Close(out), func(err error) error {
-				return E.Cause(err, "close provider/", p.Type(), "[", i, "]", " outbound/", out.Type(), "[", j, "]")
+				return E.Cause(err, "close ", name)
 			})
 			monitor.Finish()
+			done()
 		}
-		monitor.Start("closing provider/", p.Type(), "[", i, "]")
+		name := "provider/" + p.Type() + "[" + F.ToString(i) + "]"
+		done := adapter.LogElapsed(m.logger, "close ", name)
+		monitor.Start("closing ", name)
 		errors = E.Append(errors, common.Close(p), func(err error) error {
-			return E.Cause(err, "close provider/", p.Type(), "[", i, "]")
+			return E.Cause(err, "close ", name)
 		})
 		monitor.Finish()
+		done()
 	}
 	return nil
 }

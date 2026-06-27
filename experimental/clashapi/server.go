@@ -9,6 +9,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -58,6 +59,8 @@ type Server struct {
 	externalUI               string
 	externalUIDownloadURL    string
 	externalUIDownloadDetour string
+
+	patchAccess sync.Mutex
 }
 
 func NewServer(ctx context.Context, logFactory log.ObservableFactory, options option.ClashAPIOptions) (adapter.LifecycleService, error) {
@@ -305,6 +308,8 @@ func getLogs(ctx context.Context, logFactory log.ObservableFactory) func(w http.
 		levelText := r.URL.Query().Get("level")
 		if levelText == "" {
 			levelText = "info"
+		} else if levelText == "silent" {
+			levelText = log.FormatLevel(log.LevelFatal)
 		}
 
 		level, ok := log.ParseLevel(levelText)

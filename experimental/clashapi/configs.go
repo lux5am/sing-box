@@ -14,7 +14,7 @@ func configRouter(server *Server, logFactory log.Factory) http.Handler {
 	r.Get("/", getConfigs(server, logFactory))
 	// r.Put("/", updateConfigs)
 	r.Put("/", reload(server))
-	r.Patch("/", patchConfigs(server))
+	r.Patch("/", patchConfigs(server, logFactory))
 	return r
 }
 
@@ -39,19 +39,25 @@ func getConfigs(server *Server, logFactory log.Factory) func(w http.ResponseWrit
 		logLevel := logFactory.Level()
 		if logLevel == log.LevelTrace {
 			logLevel = log.LevelDebug
+		}
+		var logLevelFormat string
+		if logLevel == log.LevelWarn {
+			logLevelFormat = "warning"
 		} else if logLevel < log.LevelError {
-			logLevel = log.LevelError
+			logLevelFormat = "silent"
+		} else {
+			logLevelFormat = log.FormatLevel(logLevel)
 		}
 		render.JSON(w, r, &configSchema{
 			Mode:        server.clashMode.Mode(),
 			ModeList:    server.clashMode.ModeList(),
 			BindAddress: "*",
-			LogLevel:    log.FormatLevel(logLevel),
+			LogLevel:    logLevelFormat,
 		})
 	}
 }
 
-func patchConfigs(server *Server) func(w http.ResponseWriter, r *http.Request) {
+func patchConfigs(server *Server, logFactory log.Factory) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var newConfig configSchema
 		err := render.DecodeJSON(r.Body, &newConfig)
@@ -62,6 +68,24 @@ func patchConfigs(server *Server) func(w http.ResponseWriter, r *http.Request) {
 		}
 		if newConfig.Mode != "" {
 			server.clashMode.SetMode(newConfig.Mode)
+		}
+		if newConfig.LogLevel != "" {
+			var logLevel log.Level
+			if newConfig.LogLevel == "silent" {
+				logLevel = log.LevelFatal
+			} else {
+				logLevel, err = log.ParseLevel(newConfig.LogLevel)
+				if err != nil {
+					render.Status(r, http.StatusBadRequest)
+					render.JSON(w, r, ErrBadRequest)
+					return
+				}
+			}
+			if logLevel != logFactory.Level() {
+				server.patchAccess.Lock()
+				defer server.patchAccess.Unlock()
+				logFactory.SetLevel(logLevel)
+			}
 		}
 		render.NoContent(w, r)
 	}

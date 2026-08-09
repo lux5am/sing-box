@@ -779,6 +779,10 @@ func (r *Router) actionSniff(
 		metadata.SnifferNames = action.SnifferNames
 		metadata.SniffError = err
 		if err == nil {
+			if action.MatchSkip(metadata) {
+				r.logger.DebugContext(ctx, "skip sniffed domain: ", metadata.SniffHost)
+				metadata.SniffHost = ""
+			}
 			if metadata.SniffHost != "" && metadata.Client != "" {
 				r.logger.DebugContext(ctx, "sniffed protocol: ", metadata.Protocol, ", domain: ", metadata.SniffHost, ", client: ", metadata.Client)
 			} else if metadata.SniffHost != "" {
@@ -895,6 +899,10 @@ func (r *Router) actionSniff(
 		}
 	finally:
 		if err == nil {
+			if action.MatchSkip(metadata) {
+				r.logger.DebugContext(ctx, "skip sniffed domain: ", metadata.SniffHost)
+				metadata.SniffHost = ""
+			}
 			if metadata.SniffHost != "" && metadata.Client != "" {
 				r.logger.DebugContext(ctx, "sniffed packet protocol: ", metadata.Protocol, ", domain: ", metadata.SniffHost, ", client: ", metadata.Client)
 			} else if metadata.SniffHost != "" {

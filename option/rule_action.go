@@ -271,6 +271,11 @@ func (r *RejectActionOptions) UnmarshalJSON(bytes []byte) error {
 type RouteActionSniff struct {
 	Sniffer badoption.Listable[string] `json:"sniffer,omitempty" enum:"tls,http,quic,dns,stun,bittorrent,dtls,ssh,rdp,ntp"`
 	Timeout badoption.Duration         `json:"timeout,omitempty"`
+
+	SkipDomain        badoption.Listable[string] `json:"skip_domain,omitempty"`
+	SkipDomainSuffix  badoption.Listable[string] `json:"skip_domain_suffix,omitempty"`
+	SkipDomainKeyword badoption.Listable[string] `json:"skip_domain_keyword,omitempty"`
+	SkipDomainRegex   badoption.Listable[string] `json:"skip_domain_regex,omitempty"`
 }
 
 type RouteActionResolve struct {

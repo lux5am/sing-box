@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/netip"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -14,6 +15,7 @@ import (
 	C "github.com/sagernet/sing-box/constant"
 	"github.com/sagernet/sing-box/option"
 	"github.com/sagernet/sing/common"
+	"github.com/sagernet/sing/common/domain"
 	E "github.com/sagernet/sing/common/exceptions"
 	F "github.com/sagernet/sing/common/format"
 	"github.com/sagernet/sing/common/logger"
@@ -84,7 +86,7 @@ func NewRuleAction(logger logger.ContextLogger, action option.RuleAction) (adapt
 			SnifferNames: action.SniffOptions.Sniffer,
 			Timeout:      time.Duration(action.SniffOptions.Timeout),
 		}
-		return sniffAction, sniffAction.build()
+		return sniffAction, sniffAction.build(action.SniffOptions)
 	case C.RuleActionTypeResolve:
 		return &RuleActionResolve{
 			Server:                 action.ResolveOptions.Server,
@@ -477,13 +479,17 @@ type RuleActionSniff struct {
 	StreamSniffers []sniff.StreamSniffer
 	PacketSniffers []sniff.PacketSniffer
 	Timeout        time.Duration
+
+	SkipDomain        *domain.Matcher
+	SkipDomainKeyword []string
+	SkipDomainRegex   []*regexp.Regexp
 }
 
 func (r *RuleActionSniff) Type() string {
 	return C.RuleActionTypeSniff
 }
 
-func (r *RuleActionSniff) build() error {
+func (r *RuleActionSniff) build(options option.RouteActionSniff) error {
 	for _, name := range r.SnifferNames {
 		switch name {
 		case C.ProtocolTLS:
@@ -513,7 +519,41 @@ func (r *RuleActionSniff) build() error {
 			return E.New("unknown sniffer: ", name)
 		}
 	}
+	if len(options.SkipDomain) > 0 || len(options.SkipDomainSuffix) > 0 {
+		r.SkipDomain = domain.NewMatcher(options.SkipDomain, options.SkipDomainSuffix, false)
+	}
+	r.SkipDomainKeyword = options.SkipDomainKeyword
+	if len(options.SkipDomainRegex) > 0 {
+		for i, regex := range options.SkipDomainRegex {
+			matcher, err := regexp.Compile(regex)
+			if err != nil {
+				return E.Cause(err, "parse expression ", i)
+			}
+			r.SkipDomainRegex = append(r.SkipDomainRegex, matcher)
+		}
+	}
 	return nil
+}
+
+func (r *RuleActionSniff) MatchSkip(metadata *adapter.InboundContext) bool {
+	if metadata.SniffHost == "" || (r.SkipDomain == nil && len(r.SkipDomainKeyword) == 0 && len(r.SkipDomainRegex) == 0) {
+		return false
+	}
+	domainHost := strings.ToLower(metadata.SniffHost)
+	if r.SkipDomain != nil && r.SkipDomain.Match(domainHost) {
+		return true
+	}
+	for _, keyword := range r.SkipDomainKeyword {
+		if strings.Contains(domainHost, keyword) {
+			return true
+		}
+	}
+	for _, matcher := range r.SkipDomainRegex {
+		if matcher.MatchString(domainHost) {
+			return true
+		}
+	}
+	return false
 }
 
 func (r *RuleActionSniff) String() string {

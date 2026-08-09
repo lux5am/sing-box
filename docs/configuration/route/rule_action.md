@@ -280,6 +280,10 @@ of accepted values and platform notes.
 {
   "action": "sniff",
   "sniffer": [],
+  "skip_domain": [],
+  "skip_domain_suffix": [],
+  "skip_domain_keyword": [],
+  "skip_domain_regex": [],
   "timeout": ""
 }
 ```
@@ -295,6 +299,10 @@ Enabled sniffers.
 All sniffers enabled by default.
 
 Available protocol values an be found on in [Protocol Sniff](../sniff/)
+
+#### skip_domain
+
+If the sniffed domain matches skip_domain it will be ignored.
 
 #### timeout
 

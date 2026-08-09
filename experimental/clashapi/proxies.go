@@ -93,7 +93,7 @@ func proxyInfo(server *Server, detour adapter.Outbound) *badjson.JSONObject {
 func getProxies(server *Server) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var proxyMap badjson.JSONObject
-		outbounds := common.Filter(server.outbound.OutboundsWithProvider(), func(detour adapter.Outbound) bool {
+		outbounds := common.Filter(server.outbound.Outbounds(), func(detour adapter.Outbound) bool {
 			return detour.Tag() != ""
 		})
 		outbounds = append(outbounds, common.Map(common.Filter(server.endpoint.Endpoints(), func(detour adapter.Endpoint) bool {

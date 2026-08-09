@@ -753,6 +753,10 @@ func (r *Router) actionSniff(
 		metadata.SnifferNames = action.SnifferNames
 		metadata.SniffError = err
 		if err == nil {
+			if action.MatchSkip(metadata) {
+				r.logger.DebugContext(ctx, "skip sniffed domain: ", metadata.SniffHost)
+				metadata.SniffHost = ""
+			}
 			//goland:noinspection GoDeprecation
 			if !metadata.Destination.IsFqdn() && action.OverrideDestination && M.IsDomainName(metadata.SniffHost) {
 				metadata.Destination = M.Socksaddr{
@@ -877,6 +881,10 @@ func (r *Router) actionSniff(
 		}
 	finally:
 		if err == nil {
+			if action.MatchSkip(metadata) {
+				r.logger.DebugContext(ctx, "skip sniffed domain: ", metadata.SniffHost)
+				metadata.SniffHost = ""
+			}
 			//goland:noinspection GoDeprecation
 			if !metadata.Destination.IsFqdn() && action.OverrideDestination && M.IsDomainName(metadata.SniffHost) {
 				metadata.Destination = M.Socksaddr{

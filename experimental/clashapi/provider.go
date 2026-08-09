@@ -24,8 +24,36 @@ func proxyProviderRouter(server *Server, router adapter.Router) http.Handler {
 		r.Get("/", getProvider(server))
 		r.Put("/", updateProvider(server, router))
 		r.Get("/healthcheck", healthCheckProvider(server))
+		r.Mount("/", proxyProviderProxyRouter(server))
 	})
 	return r
+}
+
+func proxyProviderProxyRouter(server *Server) http.Handler {
+	r := chi.NewRouter()
+	r.Route("/{name}", func(r chi.Router) {
+		r.Use(parseProxyName, findProviderProxyByName(server))
+		r.Get("/", getProxy(server))
+		r.Get("/healthcheck", getProxyDelay(server))
+	})
+	return r
+}
+
+func findProviderProxyByName(server *Server) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			provider := r.Context().Value(CtxKeyProvider).(adapter.OutboundProvider)
+			name := r.Context().Value(CtxKeyProxyName).(string)
+			proxy, exist := provider.Outbound(name)
+			if !exist {
+				render.Status(r, http.StatusNotFound)
+				render.JSON(w, r, ErrNotFound)
+				return
+			}
+			ctx := context.WithValue(r.Context(), CtxKeyProxy, proxy)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
 }
 
 func providerInfo(server *Server, provider adapter.OutboundProvider) *render.M {

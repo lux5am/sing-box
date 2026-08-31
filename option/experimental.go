@@ -16,6 +16,8 @@ type ExperimentalOptions struct {
 	Constant  *ConstantOptions  `json:"constant,omitempty"`
 
 	URLTestUnifiedDelay bool `json:"urltest_unified_delay,omitempty"`
+
+	DefaultTestURL string `json:"default_test_url,omitempty"`
 }
 
 func (o *ExperimentalOptions) Apply() {
@@ -26,6 +28,9 @@ func (o *ExperimentalOptions) Apply() {
 		o.Constant.Apply()
 	}
 	C.URLTestUnifiedDelay = o.URLTestUnifiedDelay
+	if o.DefaultTestURL != "" {
+		C.DefaultTestURL = o.DefaultTestURL
+	}
 }
 
 type CacheFileOptions struct {

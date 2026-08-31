@@ -39,7 +39,7 @@ func NewLocalProvider(ctx context.Context, manager *Manager, router adapter.Rout
 	interval := time.Duration(localOptions.HealthcheckInterval)
 	healthcheckUrl := localOptions.HealthcheckUrl
 	if healthcheckUrl == "" {
-		healthcheckUrl = "https://www.gstatic.com/generate_204"
+		healthcheckUrl = C.DefaultTestURL
 	}
 	if interval == 0 {
 		interval = C.DefaultURLTestInterval

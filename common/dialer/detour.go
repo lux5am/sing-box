@@ -62,7 +62,7 @@ func (d *DetourDialer) init() {
 	var dialer adapter.Outbound
 	if d.detour != "" {
 		var loaded bool
-		dialer, loaded = d.outboundManager.Outbound(d.detour)
+		dialer, loaded = d.outboundManager.OutboundWithProvider(d.detour)
 		if !loaded {
 			d.initErr = E.New("outbound detour not found: ", d.detour)
 			return

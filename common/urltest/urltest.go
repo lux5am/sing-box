@@ -99,7 +99,7 @@ func URLTest(ctx context.Context, link string, detour N.Dialer) (uint16, error) 
 
 func urlTest(ctx context.Context, link string, detour N.Dialer) (t uint16, err error) {
 	if link == "" {
-		link = "https://www.gstatic.com/generate_204"
+		link = C.DefaultTestURL
 	}
 	linkURL, err := url.Parse(link)
 	if err != nil {

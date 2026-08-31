@@ -329,7 +329,7 @@ func NewLoadBalanceGroup(ctx context.Context, outboundManager adapter.OutboundMa
 		ttl = time.Minute * 10
 	}
 	if link == "" {
-		link = "https://www.gstatic.com/generate_204"
+		link = C.DefaultTestURL
 	}
 	loadBalanceGroup := &LoadBalanceGroup{
 		ctx:                          ctx,

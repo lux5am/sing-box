@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://sing-box.sagernet.org/zh/configuration/experimental/v2ray-api/">
       
       
-        <link rel="prev" href="../clash-api/">
+        <link rel="prev" href="./">
       
       
         <link rel="next" href="../../shared/listen/">
@@ -3290,6 +3290,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -3398,6 +3402,336 @@
   
 
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    V2Ray API
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    V2Ray API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#结构" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        结构
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#字段" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        字段
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="字段">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#listen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        listen
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stats" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        stats
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#statsenabled" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        stats.enabled
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#statsinbounds" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        stats.inbounds
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#statsoutbounds" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        stats.outbounds
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#statsusers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        stats.users
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    V2Ray API
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    V2Ray API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#结构" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        结构
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#字段" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        字段
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="字段">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#listen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        listen
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stats" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        stats
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#statsenabled" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        stats.enabled
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#statsinbounds" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        stats.inbounds
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#statsoutbounds" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        stats.outbounds
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#statsusers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        stats.users
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -5389,6 +5723,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -6069,6 +6407,62 @@
     
   
     URLTest
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../outbound/fallback/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fallback
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../outbound/loadbalance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LoadBalance
   
 
     

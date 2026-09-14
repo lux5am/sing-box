@@ -94,7 +94,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#1150-alpha1" class="md-skip">
+        <a href="#1150-alpha3" class="md-skip">
           跳转至
         </a>
       
@@ -581,6 +581,17 @@
       目录
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1150-alpha3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.15.0-alpha.3
+      
+    </span>
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#1150-alpha1" class="md-nav__link">
@@ -11781,6 +11792,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#1150-alpha3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.15.0-alpha.3
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#1150-alpha1" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -16896,6 +16918,17 @@
 
   <h1>更新日志</h1>
 
+<h4 id="1150-alpha3">1.15.0-alpha.3</h4>
+<ul>
+<li>Significantly improve TUN performance with a new TCP/IP stack <strong>1</strong></li>
+<li>Fixes and improvements</li>
+</ul>
+<p><strong>1</strong>:</p>
+<p>Since 1.15.0, sing-tun uses its own TCP/IP stack, with substantial improvements over all previous
+implementations in peak performance, energy efficiency, and memory usage.
+Remove the <code>stack</code> option to use it.</p>
+<p>The <code>stack</code> option is deprecated and will be removed in sing-box 1.17.0.
+See <a href="/migration/#migrate-tun-stack">Migration</a>.</p>
 <h4 id="1150-alpha1">1.15.0-alpha.1</h4>
 <ul>
 <li>Implement fully functional <code>auto_redirect</code> for Android <strong>1</strong></li>

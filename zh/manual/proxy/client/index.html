@@ -6956,11 +6956,9 @@ as the most reasonable method for performing transparent proxying.</p>
     tun[TUN interface]
     windows -. route .-&gt; tun
     linux -. iproute2 route/rule .-&gt; tun
-    tun --&gt; gvisor[gVisor TUN stack]
-    tun --&gt; system[system TUN stack]
+    tun --&gt; stack[sing-tun TCP/IP stack]
     assemble([L3 to L4 assemble])
-    gvisor --&gt; assemble
-    system --&gt; assemble
+    stack --&gt; assemble
     assemble --&gt; conn[TCP and UDP connections]
     conn --&gt; router[sing-box Router]
     router --&gt; direct[Direct outbound]

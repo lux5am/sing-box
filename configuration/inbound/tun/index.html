@@ -5573,6 +5573,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#multi_queue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        multi_queue
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#include_interface" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -7695,6 +7706,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#multi_queue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        multi_queue
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#include_interface" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -7940,7 +7962,9 @@
 
 <div class="admonition quote">
 <p class="admonition-title">Changes in sing-box 1.15.0</p>
-<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"/></svg></span> <a href="#auto_redirect_tproxy_mark">auto_redirect_tproxy_mark</a></p>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"/></svg></span> <a href="#auto_redirect_tproxy_mark">auto_redirect_tproxy_mark</a><br />
+<span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"/></svg></span> <a href="#multi_queue">multi_queue</a><br />
+<span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15 13h1.5v2.82l2.44 1.41-.75 1.3L15 16.69zm8 3c0 3.87-3.13 7-7 7-1.91 0-3.64-.76-4.9-2H8c-1.1 0-2-.9-2-2V7h12v2.29c2.89.86 5 3.54 5 6.71m-7-5c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5m3-7v2H5V4h3.5l1-1h5l1 1z"/></svg></span> <a href="#stack">stack</a></p>
 </div>
 <div class="admonition quote">
 <p class="admonition-title">Changes in sing-box 1.14.0</p>
@@ -8056,7 +8080,7 @@
 <a id="__codelineno-0-47" name="__codelineno-0-47" href="#__codelineno-0-47"></a>
 <a id="__codelineno-0-48" name="__codelineno-0-48" href="#__codelineno-0-48"></a><span class="w">  </span><span class="err">...</span><span class="w"> </span><span class="c1">// UDP NAT Fields</span>
 <a id="__codelineno-0-49" name="__codelineno-0-49" href="#__codelineno-0-49"></a>
-<a id="__codelineno-0-50" name="__codelineno-0-50" href="#__codelineno-0-50"></a><span class="w">  </span><span class="nt">&quot;stack&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;system&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-50" name="__codelineno-0-50" href="#__codelineno-0-50"></a><span class="w">  </span><span class="nt">&quot;multi_queue&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
 <a id="__codelineno-0-51" name="__codelineno-0-51" href="#__codelineno-0-51"></a><span class="w">  </span><span class="nt">&quot;include_interface&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <a id="__codelineno-0-52" name="__codelineno-0-52" href="#__codelineno-0-52"></a><span class="w">    </span><span class="s2">&quot;lan0&quot;</span>
 <a id="__codelineno-0-53" name="__codelineno-0-53" href="#__codelineno-0-53"></a><span class="w">  </span><span class="p">],</span>
@@ -8101,30 +8125,31 @@
 <a id="__codelineno-0-92" name="__codelineno-0-92" href="#__codelineno-0-92"></a><span class="w">    </span><span class="p">}</span>
 <a id="__codelineno-0-93" name="__codelineno-0-93" href="#__codelineno-0-93"></a><span class="w">  </span><span class="p">},</span>
 <a id="__codelineno-0-94" name="__codelineno-0-94" href="#__codelineno-0-94"></a><span class="w">  </span><span class="c1">// Deprecated</span>
-<a id="__codelineno-0-95" name="__codelineno-0-95" href="#__codelineno-0-95"></a><span class="w">  </span><span class="nt">&quot;gso&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
-<a id="__codelineno-0-96" name="__codelineno-0-96" href="#__codelineno-0-96"></a><span class="w">  </span><span class="nt">&quot;inet4_address&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-0-97" name="__codelineno-0-97" href="#__codelineno-0-97"></a><span class="w">    </span><span class="s2">&quot;172.19.0.1/30&quot;</span>
-<a id="__codelineno-0-98" name="__codelineno-0-98" href="#__codelineno-0-98"></a><span class="w">  </span><span class="p">],</span>
-<a id="__codelineno-0-99" name="__codelineno-0-99" href="#__codelineno-0-99"></a><span class="w">  </span><span class="nt">&quot;inet6_address&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-0-100" name="__codelineno-0-100" href="#__codelineno-0-100"></a><span class="w">    </span><span class="s2">&quot;fdfe:dcba:9876::1/126&quot;</span>
-<a id="__codelineno-0-101" name="__codelineno-0-101" href="#__codelineno-0-101"></a><span class="w">  </span><span class="p">],</span>
-<a id="__codelineno-0-102" name="__codelineno-0-102" href="#__codelineno-0-102"></a><span class="w">  </span><span class="nt">&quot;inet4_route_address&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-0-103" name="__codelineno-0-103" href="#__codelineno-0-103"></a><span class="w">    </span><span class="s2">&quot;0.0.0.0/1&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-104" name="__codelineno-0-104" href="#__codelineno-0-104"></a><span class="w">    </span><span class="s2">&quot;128.0.0.0/1&quot;</span>
-<a id="__codelineno-0-105" name="__codelineno-0-105" href="#__codelineno-0-105"></a><span class="w">  </span><span class="p">],</span>
-<a id="__codelineno-0-106" name="__codelineno-0-106" href="#__codelineno-0-106"></a><span class="w">  </span><span class="nt">&quot;inet6_route_address&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-0-107" name="__codelineno-0-107" href="#__codelineno-0-107"></a><span class="w">    </span><span class="s2">&quot;::/1&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-108" name="__codelineno-0-108" href="#__codelineno-0-108"></a><span class="w">    </span><span class="s2">&quot;8000::/1&quot;</span>
-<a id="__codelineno-0-109" name="__codelineno-0-109" href="#__codelineno-0-109"></a><span class="w">  </span><span class="p">],</span>
-<a id="__codelineno-0-110" name="__codelineno-0-110" href="#__codelineno-0-110"></a><span class="w">  </span><span class="nt">&quot;inet4_route_exclude_address&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-0-111" name="__codelineno-0-111" href="#__codelineno-0-111"></a><span class="w">    </span><span class="s2">&quot;192.168.0.0/16&quot;</span>
-<a id="__codelineno-0-112" name="__codelineno-0-112" href="#__codelineno-0-112"></a><span class="w">  </span><span class="p">],</span>
-<a id="__codelineno-0-113" name="__codelineno-0-113" href="#__codelineno-0-113"></a><span class="w">  </span><span class="nt">&quot;inet6_route_exclude_address&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-0-114" name="__codelineno-0-114" href="#__codelineno-0-114"></a><span class="w">    </span><span class="s2">&quot;fc00::/7&quot;</span>
-<a id="__codelineno-0-115" name="__codelineno-0-115" href="#__codelineno-0-115"></a><span class="w">  </span><span class="p">],</span>
-<a id="__codelineno-0-116" name="__codelineno-0-116" href="#__codelineno-0-116"></a><span class="w">  </span><span class="err">...</span>
-<a id="__codelineno-0-117" name="__codelineno-0-117" href="#__codelineno-0-117"></a><span class="w">  </span><span class="c1">// Listen Fields</span>
-<a id="__codelineno-0-118" name="__codelineno-0-118" href="#__codelineno-0-118"></a><span class="p">}</span>
+<a id="__codelineno-0-95" name="__codelineno-0-95" href="#__codelineno-0-95"></a><span class="w">  </span><span class="nt">&quot;stack&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;system&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-96" name="__codelineno-0-96" href="#__codelineno-0-96"></a><span class="w">  </span><span class="nt">&quot;gso&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<a id="__codelineno-0-97" name="__codelineno-0-97" href="#__codelineno-0-97"></a><span class="w">  </span><span class="nt">&quot;inet4_address&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-0-98" name="__codelineno-0-98" href="#__codelineno-0-98"></a><span class="w">    </span><span class="s2">&quot;172.19.0.1/30&quot;</span>
+<a id="__codelineno-0-99" name="__codelineno-0-99" href="#__codelineno-0-99"></a><span class="w">  </span><span class="p">],</span>
+<a id="__codelineno-0-100" name="__codelineno-0-100" href="#__codelineno-0-100"></a><span class="w">  </span><span class="nt">&quot;inet6_address&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-0-101" name="__codelineno-0-101" href="#__codelineno-0-101"></a><span class="w">    </span><span class="s2">&quot;fdfe:dcba:9876::1/126&quot;</span>
+<a id="__codelineno-0-102" name="__codelineno-0-102" href="#__codelineno-0-102"></a><span class="w">  </span><span class="p">],</span>
+<a id="__codelineno-0-103" name="__codelineno-0-103" href="#__codelineno-0-103"></a><span class="w">  </span><span class="nt">&quot;inet4_route_address&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-0-104" name="__codelineno-0-104" href="#__codelineno-0-104"></a><span class="w">    </span><span class="s2">&quot;0.0.0.0/1&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-105" name="__codelineno-0-105" href="#__codelineno-0-105"></a><span class="w">    </span><span class="s2">&quot;128.0.0.0/1&quot;</span>
+<a id="__codelineno-0-106" name="__codelineno-0-106" href="#__codelineno-0-106"></a><span class="w">  </span><span class="p">],</span>
+<a id="__codelineno-0-107" name="__codelineno-0-107" href="#__codelineno-0-107"></a><span class="w">  </span><span class="nt">&quot;inet6_route_address&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-0-108" name="__codelineno-0-108" href="#__codelineno-0-108"></a><span class="w">    </span><span class="s2">&quot;::/1&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-109" name="__codelineno-0-109" href="#__codelineno-0-109"></a><span class="w">    </span><span class="s2">&quot;8000::/1&quot;</span>
+<a id="__codelineno-0-110" name="__codelineno-0-110" href="#__codelineno-0-110"></a><span class="w">  </span><span class="p">],</span>
+<a id="__codelineno-0-111" name="__codelineno-0-111" href="#__codelineno-0-111"></a><span class="w">  </span><span class="nt">&quot;inet4_route_exclude_address&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-0-112" name="__codelineno-0-112" href="#__codelineno-0-112"></a><span class="w">    </span><span class="s2">&quot;192.168.0.0/16&quot;</span>
+<a id="__codelineno-0-113" name="__codelineno-0-113" href="#__codelineno-0-113"></a><span class="w">  </span><span class="p">],</span>
+<a id="__codelineno-0-114" name="__codelineno-0-114" href="#__codelineno-0-114"></a><span class="w">  </span><span class="nt">&quot;inet6_route_exclude_address&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-0-115" name="__codelineno-0-115" href="#__codelineno-0-115"></a><span class="w">    </span><span class="s2">&quot;fc00::/7&quot;</span>
+<a id="__codelineno-0-116" name="__codelineno-0-116" href="#__codelineno-0-116"></a><span class="w">  </span><span class="p">],</span>
+<a id="__codelineno-0-117" name="__codelineno-0-117" href="#__codelineno-0-117"></a><span class="w">  </span><span class="err">...</span>
+<a id="__codelineno-0-118" name="__codelineno-0-118" href="#__codelineno-0-118"></a><span class="w">  </span><span class="c1">// Listen Fields</span>
+<a id="__codelineno-0-119" name="__codelineno-0-119" href="#__codelineno-0-119"></a><span class="p">}</span>
 </code></pre></div>
 <div class="admonition note">
 <p>You can ignore the JSON Array [] tag when the content is only one item</p>
@@ -8441,17 +8466,27 @@ but otherwise it works fine on all command line clients and Apple platforms.</p>
 </div>
 </div>
 <h4 id="endpoint_independent_nat">endpoint_independent_nat</h4>
-<div class="admonition info">
-<p>This item is only available on the gvisor stack, other stacks are endpoint-independent NAT by default.</p>
-</div>
-<p>Enable endpoint-independent NAT.</p>
-<p>Performance may degrade slightly, so it is not recommended to enable on when it is not needed.</p>
+<p>This option has had no effect since sing-box 1.11.0 and can be removed from the configuration.</p>
+<p>Since sing-box 1.14.0, use <a href="/configuration/shared/udp-nat/">UDP NAT fields</a>
+to customize the mapping and filtering behavior.</p>
 <h4 id="stack">stack</h4>
+<div class="admonition failure">
+<p class="admonition-title">Deprecated in sing-box 1.15.0</p>
+<p><code>stack</code> is deprecated and will be removed in sing-box 1.17.0.
+Remove the <code>stack</code> option to use sing-tun's own TCP/IP stack.
+See <a href="/migration/#migrate-tun-stack">Migration</a>.</p>
+</div>
+<div class="admonition quote">
+<p class="admonition-title">Changes in sing-box 1.15.0</p>
+<p>Since 1.15.0, sing-tun uses its own TCP/IP stack, with substantial improvements over all previous
+implementations in peak performance, energy efficiency, and memory usage.</p>
+</div>
 <div class="admonition quote">
 <p class="admonition-title">Changes in sing-box 1.8.0</p>
 <p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 4v2H3V4h3.5l1-1h5l1 1zM4 19V7h12v12c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2m15-4h2v2h-2zm0-8h2v6h-2z"/></svg></span> The legacy LWIP stack has been deprecated and removed.</p>
 </div>
 <p>TCP/IP stack.</p>
+<p>The following legacy implementations remain available during the deprecation period.</p>
 <table>
 <thead>
 <tr>
@@ -8474,7 +8509,11 @@ but otherwise it works fine on all command line clients and Apple platforms.</p>
 </tr>
 </tbody>
 </table>
-<p>Defaults to the <code>mixed</code> stack if the gVisor build tag is enabled, otherwise defaults to the <code>system</code> stack.</p>
+<h4 id="multi_queue">multi_queue</h4>
+<div class="admonition quote">
+<p>Only supported on Linux, and requires sing-tun's own TCP/IP stack.</p>
+</div>
+<p>Enable multi-queue support based on <code>IFF_MULTI_QUEUE</code>, allowing throughput to scale with the number of CPU cores.</p>
 <h4 id="include_interface">include_interface</h4>
 <div class="admonition quote">
 <p>Interface rules are only supported on Linux and require auto_route.</p>

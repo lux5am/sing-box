@@ -4384,6 +4384,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -4585,6 +4589,62 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../endpoint/masque-client/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MASQUE Client
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../endpoint/masque-server/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MASQUE Server
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -4604,6 +4664,8 @@
       
         
           
+        
+      
         
       
         
@@ -5247,6 +5309,36 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../inbound/tailcat/" class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 4c1.11 0 2 .89 2 2v12c0 1.11-.89 2-2 2H4c-1.11 0-2-.89-2-2V6c0-1.11.89-2 2-2zM8.5 15V9H7.25v3.5L4.75 9H3.5v6h1.25v-3.5L7.3 15zm5-4.74V9h-4v6h4v-1.25H11v-1.11h2.5v-1.26H11v-1.12zm7 3.74V9h-1.25v4.5h-1.12V10h-1.25v3.5h-1.13V9H14.5v5a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Tailcat
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -5266,6 +5358,8 @@
       
         
           
+        
+      
         
       
         
@@ -5856,6 +5950,36 @@
     
   
     Snell
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../outbound/tailcat/" class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 4c1.11 0 2 .89 2 2v12c0 1.11-.89 2-2 2H4c-1.11 0-2-.89-2-2V6c0-1.11.89-2 2-2zM8.5 15V9H7.25v3.5L4.75 9H3.5v6h1.25v-3.5L7.3 15zm5-4.74V9h-4v6h4v-1.25H11v-1.11h2.5v-1.26H11v-1.12zm7 3.74V9h-1.25v4.5h-1.12V10h-1.25v3.5h-1.13V9H14.5v5a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Tailcat
   
 
     
@@ -7112,18 +7236,9 @@ and never updated automatically.</p>
 <p>Download URL of the dashboard archive (zip).</p>
 <p><code>https://github.com/SagerNet/sing-box-dashboard/archive/refs/heads/gh-pages.zip</code> will be used by default.</p>
 <h5 id="http_client">http_client</h5>
-<p>HTTP client used to download the dashboard, with the same behavior as remote rule-sets.</p>
+<p>HTTP client used to download the dashboard.</p>
 <p>See <a href="/configuration/shared/http-client/">HTTP Client Fields</a> for details.</p>
-<p>When empty, the default HTTP client is used: the one named by
-<a href="/configuration/route/#default_http_client"><code>default_http_client</code></a>, or the first top-level
-<code>http_clients</code> entry when <code>default_http_client</code> is empty.</p>
-<div class="admonition failure">
-<p class="admonition-title">Implicit default deprecated in sing-box 1.14.0</p>
-<p>When neither <code>http_clients</code> nor <code>default_http_client</code> is configured, an implicit HTTP
-client connecting through the default outbound is used. This implicit default is
-deprecated in sing-box 1.14.0 and will be removed in sing-box 1.16.0; define
-<code>http_clients</code> instead.</p>
-</div>
+<p>Not used when the dashboard directory contains user-provided files.</p>
 <h5 id="update_interval">update_interval</h5>
 <p>Update interval of the dashboard.</p>
 <p><code>1d</code> will be used by default.</p>

@@ -1187,11 +1187,11 @@ func (r *Router) recordReverseMapping(message *mDNS.Msg, response *mDNS.Msg, tra
 		}
 		addresses = adapter.AppendDNSRecordAddresses(addresses[:0], answer)
 		for _, address := range addresses {
-			mappedDomain, expireAt, loaded := r.dnsReverseMapping.GetWithLifetime(address)
-			if loaded && mappedDomain == domain && time.Until(expireAt) >= lifetime {
+			mappedDomain, loaded := r.dnsReverseMapping.Get(address)
+			if loaded && mappedDomain == domain {
 				continue
 			}
-			r.dnsReverseMapping.AddWithLifetime(address, domain, lifetime)
+			r.dnsReverseMapping.Add(address, domain)
 		}
 	}
 }

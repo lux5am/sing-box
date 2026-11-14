@@ -7024,7 +7024,7 @@
 </div>
 <div class="admonition quote">
 <p class="admonition-title">Changes in sing-box 1.12.0</p>
-<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m23 12-2.44-2.78.34-3.68-3.61-.82-1.89-3.18L12 3 8.6 1.54 6.71 4.72l-3.61.81.34 3.68L1 12l2.44 2.78-.34 3.69 3.61.82 1.89 3.18L12 21l3.4 1.46 1.89-3.18 3.61-.82-.34-3.68z"/></svg></span> <a href="#servers">servers</a></p>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m23 12-2.44-2.78.34-3.68-3.61-.82-1.89-3.18L12 3 8.6 1.54 6.71 4.72l-3.61.81.34 3.68L1 12l2.44 2.78-.34 3.69 3.61.82 1.89 3.18L12 21l3.4 1.46 1.89-3.18 3.61-.82-.34-3.68z"/></svg></span> <a href="./server/">servers</a></p>
 </div>
 <div class="admonition quote">
 <p class="admonition-title">Changes in sing-box 1.11.0</p>
@@ -7063,7 +7063,7 @@
 </thead>
 <tbody>
 <tr>
-<td><code>server</code></td>
+<td><code>servers</code></td>
 <td>List of <a href="./server/">DNS Server</a></td>
 </tr>
 <tr>
@@ -7130,7 +7130,7 @@ the stale response is returned immediately while a background refresh is trigger
 </div>
 <p>Default timeout for each DNS query.</p>
 <p><code>10s</code> is used by default.</p>
-<p>Can be overridden by <code>rules.[].timeout</code> (DNS rule action) or <code>domain_resolver.timeout</code>.</p>
+<p>Can be overridden by <code>rules.[].timeout</code> (DNS rule action), <code>resolve.timeout</code> (route rule action) or <code>domain_resolver.timeout</code>.</p>
 <h4 id="reverse_mapping">reverse_mapping</h4>
 <p>Stores a reverse mapping of IP addresses after responding to a DNS query in order to provide domain names when routing.</p>
 <p>Since this process relies on the act of resolving domain names by an application before making a request, it can be
@@ -7141,7 +7141,7 @@ problematic in environments such as macOS, where DNS is proxied and cached by th
 </div>
 <p>Append a <code>edns0-subnet</code> OPT extra record with the specified IP prefix to every query by default.</p>
 <p>If value is an IP address instead of prefix, <code>/32</code> or <code>/128</code> will be appended automatically.</p>
-<p>Can be overridden by <code>servers.[].client_subnet</code> or <code>rules.[].client_subnet</code>.</p>
+<p>Can be overridden by <code>rules.[].client_subnet</code> (DNS rule action), <code>resolve.client_subnet</code> (route rule action) or <code>domain_resolver.client_subnet</code>.</p>
 
 
 

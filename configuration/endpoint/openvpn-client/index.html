@@ -9078,7 +9078,7 @@ server.</p>
 keys for compatibility with immutable peers. Use it only when the peer cannot
 be upgraded. <code>legacy</code> accepts SHA-1 but rejects MD5 signatures; <code>preferred</code>
 requires stronger signatures and keys.</p>
-<p>When <code>suiteb</code> is selected and <code>tls.cipher</code> is empty, the TLS 1.2 cipher list defaults to the Suite B ECDHE-ECDSA AES-GCM suites.</p>
+<p>When <code>suiteb</code> is selected, the TLS 1.2 cipher list defaults to the Suite B ECDHE-ECDSA AES-GCM suites when <code>tls.cipher</code> is empty, and the TLS groups default to <code>secp256r1</code> and <code>secp384r1</code> when <code>tls.groups</code> is empty.</p>
 <h3 id="tlsns_certificate_type">tls.ns_certificate_type</h3>
 <p>Deprecated Netscape certificate type check, one of <code>server</code> or <code>client</code>.</p>
 <p>Disabled by default. Prefer <code>tls.remote_certificate_tls</code>.</p>
@@ -9090,11 +9090,11 @@ requires stronger signatures and keys.</p>
 <p>The maximum supported version is used by default.</p>
 <p>The value cannot be lower than <code>tls.version_min</code>.</p>
 <h3 id="tlscipher">tls.cipher</h3>
-<p>Colon-separated OpenSSL cipher suite names allowed for TLS 1.2 and earlier.</p>
+<p>Colon-separated OpenSSL or IANA cipher suite names allowed for TLS 1.2 and earlier, such as <code>ECDHE-ECDSA-AES256-GCM-SHA384</code> or <code>TLS-ECDHE-ECDSA-WITH-AES-256-GCM-SHA384</code>. The order of the list is ignored.</p>
 <p>The default TLS cipher suites are used when empty.</p>
 <h3 id="tlsgroups">tls.groups</h3>
-<p>Colon-separated TLS key exchange groups in preference order.</p>
-<p>Supported groups are <code>X25519</code>, <code>SECP256R1</code>, <code>SECP384R1</code>, and <code>SECP521R1</code>, including their common OpenSSL and NIST aliases.</p>
+<p>Colon-separated TLS key exchange groups. The order of the list is ignored.</p>
+<p>Supported groups are <code>X25519</code>, <code>X25519MLKEM768</code>, <code>secp256r1</code>, <code>secp384r1</code>, and <code>secp521r1</code>, including their common OpenSSL and NIST aliases. Names are case-insensitive.</p>
 <p>The default TLS groups are used when empty.</p>
 <h3 id="tlscontrol_wrap">tls.control_wrap</h3>
 <p>OpenVPN control channel wrapping.</p>

@@ -8791,7 +8791,7 @@
 <p>证书 profile，可选值为 <code>insecure</code>、<code>legacy</code>、<code>preferred</code> 或 <code>suiteb</code>。</p>
 <p>默认使用 <code>legacy</code>。</p>
 <p><code>insecure</code> 为兼容不可变对端而接受使用 MD5 或 SHA-1 签名的证书链和较小的旧密钥，仅应在对端无法升级时使用。<code>legacy</code> 接受 SHA-1 但拒绝 MD5 签名；<code>preferred</code> 要求更强的签名和密钥。</p>
-<p>选择 <code>suiteb</code> 且 <code>tls.cipher</code> 为空时，TLS 1.2 cipher 列表默认使用 Suite B ECDHE-ECDSA AES-GCM 套件。</p>
+<p>选择 <code>suiteb</code> 时，<code>tls.cipher</code> 为空则 TLS 1.2 cipher 列表默认使用 Suite B ECDHE-ECDSA AES-GCM 套件，<code>tls.groups</code> 为空则 TLS group 默认使用 <code>secp256r1</code> 和 <code>secp384r1</code>。</p>
 <h3 id="tlsns_certificate_type">tls.ns_certificate_type</h3>
 <p>已弃用的 Netscape 证书类型检查，<code>server</code> 或 <code>client</code> 之一。</p>
 <h3 id="tlsversion_min">tls.version_min</h3>
@@ -8799,10 +8799,12 @@
 <h3 id="tlsversion_max">tls.version_max</h3>
 <p>最高 TLS 版本。默认使用支持的最高版本。</p>
 <h3 id="tlscipher">tls.cipher</h3>
-<p>TLS 1.2 及更低版本允许的 OpenSSL cipher suite 名称，以冒号分隔。</p>
+<p>TLS 1.2 及更低版本允许的 OpenSSL 或 IANA cipher suite 名称，以冒号分隔，如 <code>ECDHE-ECDSA-AES256-GCM-SHA384</code> 或 <code>TLS-ECDHE-ECDSA-WITH-AES-256-GCM-SHA384</code>。列表的顺序被忽略。</p>
 <p>为空时使用默认 TLS cipher suite。</p>
 <h3 id="tlsgroups">tls.groups</h3>
-<p>按偏好顺序排列的 TLS key exchange group，以冒号分隔。</p>
+<p>以冒号分隔的 TLS key exchange group。列表的顺序被忽略。</p>
+<p>支持 <code>X25519</code>、<code>X25519MLKEM768</code>、<code>secp256r1</code>、<code>secp384r1</code> 和 <code>secp521r1</code>，包括其常用 OpenSSL 和 NIST 别名，不区分大小写。</p>
+<p>为空时使用默认 TLS group。</p>
 <h3 id="tlscontrol_wrap">tls.control_wrap</h3>
 <p>OpenVPN 控制信道包装。</p>
 <p>等价于 OpenVPN <code>tls-auth</code>、<code>tls-crypt</code> 和 <code>tls-crypt-v2</code>。</p>

@@ -34,6 +34,7 @@ type GunConn struct {
 	onClose       func()
 	onCloseConn   func()
 	closeConn     sync.Once
+	closeOnce     sync.Once
 }
 
 func newGunConn(reader io.Reader, writer io.Writer, flusher http.Flusher) *GunConn {
@@ -150,26 +151,29 @@ func (c *GunConn) FrontHeadroom() int {
 }
 
 func (c *GunConn) Close() error {
-	if c.onCloseConn != nil {
-		c.closeConn.Do(c.onCloseConn)
-	}
-	var reader io.Reader
-	if c.create != nil {
-		select {
-		case <-c.create:
-			reader = c.rawReader
-		default:
+	var err error
+	c.closeOnce.Do(func (){
+		if c.onCloseConn != nil {
+			c.closeConn.Do(c.onCloseConn)
 		}
-	} else {
-		reader = c.rawReader
-	}
-	err := common.Close(reader, c.writer)
-	if c.cancel != nil {
-		c.cancel()
-	}
-	if c.onClose != nil {
-		c.onClose()
-	}
+		var reader io.Reader
+		if c.create != nil {
+			select {
+			case <-c.create:
+				reader = c.rawReader
+			default:
+			}
+		} else {
+			reader = c.rawReader
+		}
+		err = common.Close(reader, c.writer)
+		if c.cancel != nil {
+			c.cancel()
+		}
+		if c.onClose != nil {
+			c.onClose()
+		}
+	})
 	return err
 }
 

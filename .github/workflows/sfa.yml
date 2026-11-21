@@ -1,0 +1,294 @@
+name: Build SFA
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version name"
+        required: false
+        default: ""
+        type: string
+  push:
+    branches:
+      - stable
+      - testing
+
+jobs:
+  calculate_version:
+    runs-on: ubuntu-latest
+    outputs:
+      rev: ${{ steps.outputs.outputs.rev }}
+      tag: ${{ steps.outputs.outputs.tag }}
+      version: ${{ steps.outputs.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Get version
+        env:
+          TAG: ${{ inputs.version }}
+        run: |
+          if [ -z "$TAG" ]; then
+            git remote add upstream "https://github.com/SagerNet/sing-box.git"
+            git fetch --tags --force upstream
+            if [[ "${{ github.ref_name }}" == "testing" ]]; then
+              TAG="$(git tag --sort=-v:refname | sed -n '1p')"
+            else
+              TAG="$(git describe --tags --abbrev=0 upstream/${{ github.ref_name }})"
+            fi
+          fi
+          echo "TAG=${TAG}" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Set outputs
+        id: outputs
+        run: |
+          REV="$(git rev-parse --short HEAD)"
+          echo "rev=${REV}" >> $GITHUB_OUTPUT
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "version=${TAG}-${REV}" >> $GITHUB_OUTPUT
+          echo "version=${TAG}-${REV}"
+
+  build_android_library:
+    name: Build Android library (${{ matrix.go_arch }})
+    needs:
+      - calculate_version
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        go_arch:
+          - "386"
+          - amd64
+          - arm
+          - arm64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.10
+          cache: false
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: go-mod-linux-${{ hashFiles('go.sum') }}
+          restore-keys: go-mod-linux-
+      - name: Setup Android NDK
+        id: setup-ndk
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r28
+      - name: Setup OpenJDK
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Set tag
+        run: |-
+          git ls-remote --exit-code --tags origin v${{ needs.calculate_version.outputs.version }} || echo "PUBLISHED=false" >> "$GITHUB_ENV"
+          git tag v${{ needs.calculate_version.outputs.version }} -f
+
+      - name: Build library
+        run: |-
+          make lib_install
+          export PATH="$PATH:$(go env GOPATH)/bin"
+          go run ./cmd/internal/build_libbox -target android -platform android/${{ matrix.go_arch }}
+          mkdir -p dist/${{ matrix.go_arch }}
+          mv libbox.aar libbox-legacy.aar dist/${{ matrix.go_arch }}
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+
+      - name: Upload library
+        uses: actions/upload-artifact@v7
+        with:
+          name: libbox-android-${{ matrix.go_arch }}
+          path: dist
+          compression-level: 0
+
+  build_android:
+    name: Build Android (${{ matrix.variant }})
+    runs-on: ubuntu-latest
+    needs:
+      - calculate_version
+      - build_android_library
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: other
+            task: :app:assembleOtherRelease
+            output: app/build/outputs/apk/other/release/*.apk
+          - variant: other-legacy
+            task: :app:assembleOtherLegacyRelease
+            output: app/build/outputs/apk/otherLegacy/release/*.apk
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+      - name: Checkout Android client
+        run: git submodule update --init clients/android
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.10
+          cache: false
+      - name: Cache Go modules
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/go/pkg/mod
+          key: go-mod-linux-${{ hashFiles('go.sum') }}
+          restore-keys: go-mod-linux-
+      - name: Cache Go tool builds
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/go-build
+          key: go-build-tools-linux-${{ hashFiles('go.sum') }}
+          restore-keys: go-build-tools-linux-
+      - name: Setup Android NDK
+        id: setup-ndk
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r28
+      - name: Setup OpenJDK
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Set tag
+        run: |-
+          git ls-remote --exit-code --tags origin v${{ needs.calculate_version.outputs.version }} || echo "PUBLISHED=false" >> "$GITHUB_ENV"
+          git tag v${{ needs.calculate_version.outputs.version }} -f
+      - name: Download libraries
+        uses: actions/download-artifact@v4
+        with:
+          pattern: libbox-android-*
+          path: libbox-inputs
+          merge-multiple: true
+      - name: Merge libraries
+        run: |-
+          go run ./cmd/internal/merge_aar -output libbox.aar libbox-inputs/*/libbox.aar
+          go run ./cmd/internal/merge_aar -output libbox-legacy.aar libbox-inputs/*/libbox-legacy.aar
+
+      - name: Checkout app repository
+        run: |-
+          cd clients/android
+          if [ "${{ github.ref_name }}" == "testing" ]; then
+            git checkout dev
+          else
+            git checkout main
+          fi
+          git submodule update --init --recursive -v
+
+      - name: Gradle cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle
+          key: gradle-${{ hashFiles('**/*.gradle') }}
+
+      - name: Update version
+        run: |-
+          cd clients/android
+          source version.properties
+          echo "VERSION_CODE=${VERSION_CODE}" > version.properties
+          echo "VERSION_NAME=${{needs.calculate_version.outputs.version}}" >> version.properties
+          echo "GO_VERSION=$(go version | awk '{print $3}')" >> version.properties
+
+      - name: Build
+        run: |-
+          mkdir clients/android/app/libs
+          cp *.aar clients/android/app/libs
+          cd clients/android
+          echo -n "$RELEASE_KEYSTORE" | base64 --decode > app/release.keystore
+          ./gradlew --build-cache --parallel ${{ matrix.task }}
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          LOCAL_PROPERTIES: ${{ secrets.LOCAL_PROPERTIES }}
+          RELEASE_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE }}
+
+      - name: Prepare upload
+        run: |-
+          mkdir -p dist
+          cp clients/android/${{ matrix.output }} dist
+          VERSION_CODE=$(grep VERSION_CODE clients/android/version.properties | cut -d= -f2)
+          VERSION_NAME=$(grep VERSION_NAME clients/android/version.properties | cut -d= -f2)
+          cat > dist/SFA-version-metadata.json << EOF
+          {
+            "version_code": ${VERSION_CODE},
+            "version_name": "${VERSION_NAME}"
+          }
+          EOF
+          cat dist/SFA-version-metadata.json
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: binary-android-apks-${{ matrix.variant }}
+          path: 'dist'
+
+
+  upload_release:
+    permissions: write-all
+    if: ${{ github.ref_type == 'branch' && !startsWith(github.event_name, 'pull_request') }}
+    needs: 
+      - calculate_version
+      - build_android_library
+      - build_android
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Display structure of downloaded files
+        run: ls -R
+        working-directory: dist
+
+      - name: Set Env
+        run: |
+          echo "BUILDTIME=$(TZ=Asia/Shanghai date)" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Tag Repo
+        uses: richardsimko/update-tag@v1
+        with:
+          tag_name: ${{ needs.calculate_version.outputs.tag }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - run: |
+          cat > release.txt << 'EOF'
+          Release created at  ${{ env.BUILDTIME }}
+          EOF
+
+      - name: Upload Prerelease
+        uses: softprops/action-gh-release@v3
+        if: ${{  success() && github.ref_name == 'testing' }}
+        with:
+          tag_name: ${{ needs.calculate_version.outputs.tag }}
+          files: |
+            dist/*
+          prerelease: true
+          generate_release_notes: true
+          body_path: release.txt
+
+      - name: Upload Release
+        uses: softprops/action-gh-release@v3
+        if: ${{  success() && github.ref_name != 'testing' }}
+        with:
+          tag_name: ${{ needs.calculate_version.outputs.tag }}
+          files: |
+            dist/*
+          prerelease: false
+          generate_release_notes: true
+          body_path: release.txt
